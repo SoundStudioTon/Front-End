@@ -24,11 +24,11 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _checkIfTestTaken() async {
     final storage = FlutterSecureStorage();
-    final refreshToken = await storage.read(key: 'refreshToken');
+    final accessToken = await storage.read(key: 'accessToken');
 
-    if (refreshToken != null) {
-      print(refreshToken);
-      final hasNoiseData = await checkUserNoiseData(refreshToken);
+    if (accessToken != null) {
+      print(accessToken);
+      final hasNoiseData = await checkUserNoiseData(accessToken);
 
       print(hasNoiseData);
       if (hasNoiseData) {

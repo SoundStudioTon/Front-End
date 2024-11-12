@@ -1,4 +1,4 @@
-import 'package:cookie_jar/cookie_jar.dart';
+// import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -29,9 +29,8 @@ Future<bool> signup(String email, String nickname, String password) async {
 Future<bool?> login(String email, String password) async {
   try {
     Dio dio = Dio();
-    final cookieJar = CookieJar();
     final response = await dio.post(
-      'http://localhost:8080/api/login',
+      'http://sound-studio.kro.kr:8080/api/login',
       data: {
         'email': email,
         'password': password,
@@ -40,9 +39,6 @@ Future<bool?> login(String email, String password) async {
         contentType: Headers.formUrlEncodedContentType,
       ),
     );
-
-    List<Cookie> cookies = await cookieJar
-        .loadForRequest(Uri.parse('http://sound-studio.kro.kr:8080'));
 
     print('status code: ${response.statusCode}');
 
@@ -53,7 +49,7 @@ Future<bool?> login(String email, String password) async {
       await AuthService.saveTokens(
         accessToken: loginResponse.accessToken,
         refreshToken: loginResponse.refreshToken,
-        userId: loginResponse.userId,
+        email: loginResponse.email,
         name: loginResponse.name,
       );
 
@@ -90,13 +86,13 @@ Future<bool> logout(String refreshToken) async {
 class UserLoginResponse {
   final String accessToken;
   final String refreshToken;
-  final int userId;
+  final String email;
   final String name;
 
   UserLoginResponse({
     required this.accessToken,
     required this.refreshToken,
-    required this.userId,
+    required this.email,
     required this.name,
   });
 
@@ -104,7 +100,7 @@ class UserLoginResponse {
     return UserLoginResponse(
       accessToken: json['accessToken'],
       refreshToken: json['refreshToken'],
-      userId: json['userId'],
+      email: json['email'],
       name: json['name'],
     );
   }
@@ -146,12 +142,12 @@ class AuthService {
   static Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
-    required int userId,
+    required String email,
     required String name,
   }) async {
     await storage.write(key: 'accessToken', value: accessToken);
     await storage.write(key: 'refreshToken', value: refreshToken);
-    await storage.write(key: 'userId', value: userId.toString());
+    await storage.write(key: 'email', value: email);
     await storage.write(key: 'userName', value: name);
   }
 
@@ -177,7 +173,7 @@ class AuthService {
         await saveTokens(
           accessToken: response.accessToken,
           refreshToken: response.refreshToken,
-          userId: response.userId,
+          email: response.email,
           name: response.name,
         );
         return true;
@@ -193,15 +189,15 @@ class AuthService {
   }
 }
 
-Future<bool> checkUserNoiseData(String refreshToken) async {
+Future<bool> checkUserNoiseData(String accessToken) async {
   try {
     Dio dio = Dio();
-    final response = await dio.post(
-      'http://localhost:8080/user/noise',
-      data: {
-        'refreshToken': refreshToken,
-      },
-    );
+    final response =
+        await dio.post('http://sound-studio.kro.kr:8080/api/noise/isnoisethere',
+            data: {
+              'AccessToken': accessToken,
+            },
+            options: Options(contentType: Headers.formUrlEncodedContentType));
 
     if (response.statusCode == 200) {
       return response.data as bool;
@@ -209,7 +205,7 @@ Future<bool> checkUserNoiseData(String refreshToken) async {
     return false;
   } catch (e) {
     if (e is DioException) {
-      if (e.response?.data['message'] == '유효하지 않은 리프레시 토큰입니다') {
+      if (e.response?.data['message'] == '유효하지 않은 액세스 토큰입니다') {
         Fluttertoast.showToast(
           msg: "토큰이 만료되었습니다. 다시 로그인해주세요.",
           backgroundColor: Colors.black,

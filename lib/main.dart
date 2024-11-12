@@ -12,7 +12,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: SplashScreen(),
+      home: LoginScreen(),
       theme: ThemeData(
         brightness: Brightness.light,
         primaryColor: Colors.blue,
