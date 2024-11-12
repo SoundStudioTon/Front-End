@@ -1,5 +1,6 @@
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -8,7 +9,7 @@ Future<bool> signup(String email, String nickname, String password) async {
   try {
     Dio dio = Dio();
     final response = await dio.post(
-      'http://localhost:8080/userreg',
+      'http://sound-studio.kro.kr:8080/userreg',
       data: {
         'email': email,
         'name': nickname,
@@ -30,8 +31,10 @@ Future<bool?> login(String email, String password) async {
   try {
     Dio dio = Dio();
     final cookieJar = CookieJar();
+    dio.interceptors.add(CookieManager(cookieJar));
+
     final response = await dio.post(
-      'http://localhost:8080/api/login',
+      'http://sound-studio.kro.kr:8080/api/login',
       data: {
         'email': email,
         'password': password,
@@ -41,22 +44,14 @@ Future<bool?> login(String email, String password) async {
       ),
     );
 
-    List<Cookie> cookies = await cookieJar
-        .loadForRequest(Uri.parse('http://sound-studio.kro.kr:8080'));
+    List<Cookie> cookies =
+        await cookieJar.loadForRequest(Uri.parse('http://sound-studio.kro.kr'));
 
-    print('status code: ${response.statusCode}');
-
+    print(cookies);
+    for (var cookie in cookies) {
+      print('Cookie: ${cookie.name}=${cookie.value}');
+    }
     if (response.statusCode == 200) {
-      final loginResponse = UserLoginResponse.fromJson(response.data);
-
-      // 로그인 성공시 토큰 저장
-      await AuthService.saveTokens(
-        accessToken: loginResponse.accessToken,
-        refreshToken: loginResponse.refreshToken,
-        userId: loginResponse.userId,
-        name: loginResponse.name,
-      );
-
       return true;
     }
     return false;
