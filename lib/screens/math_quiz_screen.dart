@@ -18,7 +18,7 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
   int correctAnswers = 0;
   int totalProblems = 0;
   double totalTimeSpent = 0;
-  int? answer;
+  String answer = '';
   int countdown = 3; // 카운트다운을 위한 변수
   bool isCountdownActive = true; // 카운트다운 활성화 여부
 
@@ -115,20 +115,103 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
     );
   }
 
-  // 사용자가 답 제출
+  // 숫자 입력 처리
+  void onNumberPressed(String value) {
+    setState(() {
+      if (value == 'delete') {
+        if (answer.isNotEmpty) {
+          answer = answer.substring(0, answer.length - 1);
+        }
+      } else if (value == 'submit') {
+        if (answer.isNotEmpty) {
+          submitAnswer();
+        }
+      } else {
+        if (answer.length < 8) {
+          // 최대 8자리로 제한
+          answer += value;
+        }
+      }
+    });
+  }
+
+  // submitAnswer 메서드 수정
   void submitAnswer() {
     setState(() {
       totalProblems++;
       totalTimeSpent += (180 - remainingSeconds) / totalProblems;
 
-      if (answer == calculateResult()) {
+      if (int.parse(answer) == calculateResult()) {
         correctAnswers++;
       }
-      answer = null;
-      _controller.clear(); // 제출 후 텍스트 필드의 내용을 지움
+      answer = '';
       currentProblem++;
       generateProblem();
     });
+  }
+
+  // 넘버패드 위젯
+  Widget buildNumberPad(double screenWidth, double screenHeight) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          buildNumberRow(['1', '2', '3'], screenWidth, screenHeight),
+          buildNumberRow(['4', '5', '6'], screenWidth, screenHeight),
+          buildNumberRow(['7', '8', '9'], screenWidth, screenHeight),
+          buildNumberRow(['delete', '0', 'submit'], screenWidth, screenHeight),
+        ],
+      ),
+    );
+  }
+
+  Widget buildNumberRow(
+      List<String> numbers, double screenHeight, double screenWidth) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: numbers.map((number) {
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.all(4),
+            child: AspectRatio(
+              aspectRatio: 1.5, // 버튼의 가로:세로 비율
+              child: ElevatedButton(
+                onPressed: () => onNumberPressed(number),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  backgroundColor: number == 'submit'
+                      ? Colors.blue
+                      : number == 'delete'
+                          ? Colors.red
+                          : Colors.grey[200],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: number == 'delete'
+                    ? Icon(Icons.backspace, color: Colors.white)
+                    : number == 'submit'
+                        ? Text('제출',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: screenWidth * 0.02,
+                              fontWeight: FontWeight.bold,
+                            ))
+                        : Text(
+                            number,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: screenWidth * 0.03,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 
   @override
@@ -165,86 +248,90 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
                         Text(
                           formatTime(remainingSeconds),
                           style: TextStyle(
-                              fontSize: fontSize * 0.9,
+                              fontSize: fontSize * 0.5,
                               fontWeight: FontWeight.bold),
                         ),
-                        SizedBox(height: padding),
+                        SizedBox(height: screenHeight * 0.03),
                         Text(
                           "$currentProblem번 문제",
-                          style: TextStyle(fontSize: fontSize * 0.7),
+                          style: TextStyle(
+                              fontSize: fontSize * 0.5,
+                              fontWeight: FontWeight.bold),
                         ),
-                        SizedBox(height: padding),
+                        SizedBox(height: padding * 0.5),
+                        // 문제 표시 부분 추가
                         Container(
-                          padding: EdgeInsets.all(padding),
+                          padding: EdgeInsets.all(padding * 0.5),
                           decoration: BoxDecoration(
-                            color: Colors.grey[200],
+                            color: Colors.grey[100],
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                operator,
-                                style: GoogleFonts.inter(
-                                    fontSize: fontSize,
-                                    fontWeight: FontWeight.bold),
+                          width: screenWidth * 0.8,
+                          child: Center(
+                            child: Text(
+                              '$number1 $operator $number2',
+                              style: TextStyle(
+                                fontSize: fontSize * 0.5,
+                                fontWeight: FontWeight.bold,
                               ),
-                              SizedBox(
-                                width: screenWidth * 0.05,
-                              ),
-                              Column(
-                                children: [
-                                  Text(
-                                    "$number1",
-                                    style: TextStyle(
-                                        fontSize: fontSize,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  Text(
-                                    "$number2",
-                                    style: TextStyle(
-                                        fontSize: fontSize,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: padding * 0.5),
+                        // 답 입력창
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: padding * 0.5,
+                              vertical: padding * 0.2),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[300]!),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 2,
+                                offset: Offset(0, 1),
                               ),
                             ],
                           ),
-                        ),
-                        SizedBox(height: padding),
-                        TextField(
-                          controller: _controller, // 텍스트 필드에 컨트롤러 연결
-                          decoration: InputDecoration(
-                            labelText: "답 입력",
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.number,
-                          onChanged: (value) {
-                            answer = int.tryParse(value);
-                          },
-                        ),
-                        SizedBox(height: padding),
-                        ElevatedButton(
-                          onPressed: submitAnswer,
-                          child: Padding(
-                            child: Text(
-                              '제출',
-                              style: GoogleFonts.inter(
-                                fontSize: screenWidth * 0.04,
-                                color: Colors.white,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  answer.isEmpty ? '답을 입력하세요' : answer,
+                                  style: TextStyle(
+                                    fontSize: fontSize * 0.45,
+                                    color: answer.isEmpty
+                                        ? Colors.grey[400]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.left,
+                                ),
                               ),
-                            ),
-                            padding: EdgeInsets.only(
-                                left: screenWidth * 0.05,
-                                right: screenWidth * 0.05,
-                                top: screenWidth * 0.015,
-                                bottom: screenWidth * 0.015),
+                              if (answer.isNotEmpty)
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      answer = '';
+                                    });
+                                  },
+                                  child: Icon(
+                                    Icons.cancel,
+                                    color: Colors.grey[400],
+                                    size: fontSize * 0.45,
+                                  ),
+                                ),
+                            ],
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black54,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5)),
-                          ),
+                        ),
+                        SizedBox(height: screenHeight * 0.03),
+                        // 넘버패드 크기 조절
+                        Expanded(
+                          child: buildNumberPad(screenWidth, screenHeight),
                         ),
                       ],
                     ),

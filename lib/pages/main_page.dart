@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sound_studio/screens/difficulty_screen.dart';
 import 'package:sound_studio/ui/content_block.dart';
 
 class MainPage extends StatefulWidget {
@@ -117,6 +118,30 @@ class _MainPageState extends State<MainPage> {
                       ],
                     ),
                   ),
+                ),
+                SizedBox(
+                  height: screenHeight * 0.03,
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DifficultyScreen(),
+                        ));
+                  },
+                  child: Text(
+                    '소음테스트 다시 진행하기',
+                    style: GoogleFonts.inter(color: Colors.white, fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black54,
+                      padding: EdgeInsets.symmetric(
+                          vertical: screenHeight * 0.02,
+                          horizontal: screenWidth * 0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(3.0),
+                      )),
                 ),
               ],
             ),

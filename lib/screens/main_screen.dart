@@ -10,6 +10,7 @@ import 'package:sound_studio/pages/main_page.dart';
 import 'package:sound_studio/pages/notification_page.dart';
 import 'package:sound_studio/pages/user_page.dart';
 import 'package:sound_studio/screens/difficulty_screen.dart';
+import 'package:sound_studio/screens/study_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -34,8 +35,6 @@ class _MainScreenState extends State<MainScreen> {
     NotificationPage(),
     UserPage(),
   ];
-
-  final actions = const [];
 
   @override
   void initState() {
@@ -116,7 +115,75 @@ class _MainScreenState extends State<MainScreen> {
         ),
       ),
       leadingWidth: 150,
+      actions: _buildAppBarActions(),
     );
+  }
+
+  List<Widget>? _buildAppBarActions() {
+    switch (pageIndex.value) {
+      case 0:
+        return [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StudyScreen(),
+                  ));
+            },
+            child: Text(
+              '학습 시작하기',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black54,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(3))),
+          ),
+          SizedBox(
+            width: 16,
+          ),
+        ];
+
+      case 1:
+        return [
+          IconButton(
+            icon: Icon(Icons.calendar_today, color: Colors.black),
+            onPressed: () {
+              // 달력 기능 구현
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.filter_list, color: Colors.black),
+            onPressed: () {
+              // 필터 기능 구현
+            },
+          ),
+        ];
+
+      case 2:
+        return [
+          IconButton(
+            icon: Icon(Icons.settings, color: Colors.black),
+            onPressed: () {
+              // 알림 설정 기능 구현
+            },
+          ),
+        ];
+
+      case 3:
+        return [
+          IconButton(
+            icon: Icon(Icons.edit, color: Colors.black),
+            onPressed: () {
+              // 프로필 편집 기능 구현
+            },
+          ),
+        ];
+
+      default:
+        return null;
+    }
   }
 
   Widget _buildMainDashboard() {
