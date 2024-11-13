@@ -16,23 +16,30 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAutoLogin() async {
-    final isLoggedIn = await AuthService.autoLogin();
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginScreen(),
+        ));
 
-    if (isLoggedIn) {
-      // 자동 로그인 성공 - 메인 화면으로 이동
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MainScreen(),
-          ));
-    } else {
-      // 자동 로그인 실패 - 로그인 화면으로 이동
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => LoginScreen(),
-          ));
-    }
+    // // final isLoggedIn = await AuthService.autoLogin();
+    // final isLoggedIn = false;
+
+    // if (isLoggedIn) {
+    //   // 자동 로그인 성공 - 메인 화면으로 이동
+    //   Navigator.push(
+    //       context,
+    //       MaterialPageRoute(
+    //         builder: (context) => MainScreen(),
+    //       ));
+    // } else {
+    //   // 자동 로그인 실패 - 로그인 화면으로 이동
+    //   Navigator.push(
+    //       context,
+    //       MaterialPageRoute(
+    //         builder: (context) => LoginScreen(),
+    //       ));
+    // }
   }
 
   @override
