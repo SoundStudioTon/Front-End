@@ -72,28 +72,34 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: hasTakenTest ? Colors.white : Colors.grey,
-      appBar: isLoading
-          ? null
-          : hasTakenTest
-              ? _customAppBar()
-              : null,
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                return hasTakenTest
-                    ? _buildMainDashboard()
-                    : _buildTestPrompt(
-                        constraints.maxWidth, constraints.maxHeight);
-              },
-            ),
-      bottomNavigationBar: isLoading
-          ? null
-          : hasTakenTest
-              ? _BottomNavigationBar(onItemSelected: _onNavigationItemSelected)
-              : null,
+    return ValueListenableBuilder(
+      valueListenable: pageIndex,
+      builder: (context, value, child) {
+        return Scaffold(
+          backgroundColor: hasTakenTest ? Colors.white : Colors.grey,
+          appBar: isLoading
+              ? null
+              : hasTakenTest
+                  ? _customAppBar()
+                  : null,
+          body: isLoading
+              ? Center(child: CircularProgressIndicator())
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    return hasTakenTest
+                        ? _buildMainDashboard()
+                        : _buildTestPrompt(
+                            constraints.maxWidth, constraints.maxHeight);
+                  },
+                ),
+          bottomNavigationBar: isLoading
+              ? null
+              : hasTakenTest
+                  ? _BottomNavigationBar(
+                      onItemSelected: _onNavigationItemSelected)
+                  : null,
+        );
+      },
     );
   }
 
@@ -144,7 +150,6 @@ class _MainScreenState extends State<MainScreen> {
             width: 16,
           ),
         ];
-
       case 1:
         return [
           IconButton(
@@ -153,33 +158,16 @@ class _MainScreenState extends State<MainScreen> {
               // 달력 기능 구현
             },
           ),
-          IconButton(
-            icon: Icon(Icons.filter_list, color: Colors.black),
-            onPressed: () {
-              // 필터 기능 구현
-            },
+          SizedBox(
+            width: 16,
           ),
         ];
 
       case 2:
-        return [
-          IconButton(
-            icon: Icon(Icons.settings, color: Colors.black),
-            onPressed: () {
-              // 알림 설정 기능 구현
-            },
-          ),
-        ];
+        return [];
 
       case 3:
-        return [
-          IconButton(
-            icon: Icon(Icons.edit, color: Colors.black),
-            onPressed: () {
-              // 프로필 편집 기능 구현
-            },
-          ),
-        ];
+        return [];
 
       default:
         return null;

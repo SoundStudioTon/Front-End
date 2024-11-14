@@ -42,6 +42,7 @@ class LoginScreen extends StatelessWidget {
                   controller: emailController,
                   decoration: InputDecoration(
                     labelText: '이메일',
+                    focusColor: Colors.black,
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.grey),
                     ),
@@ -66,6 +67,7 @@ class LoginScreen extends StatelessWidget {
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: '비밀번호',
+                    focusColor: Colors.black,
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.grey),
                     ),
@@ -138,17 +140,17 @@ class LoginScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  socialLoginButton('assets/google_login_icon.png',
+                  socialLoginButton('assets/images/google_login_icon.png',
                       screenWidth * 0.07, screenWidth * 0.07),
                   SizedBox(
                     width: screenWidth * 0.02,
                   ),
-                  socialLoginButton('assets/kakao_login_icon.png',
+                  socialLoginButton('assets/images/kakao_login_icon.png',
                       screenWidth * 0.07, screenWidth * 0.07),
                   SizedBox(
                     width: screenWidth * 0.02,
                   ),
-                  socialLoginButton('assets/naver_login_icon.png',
+                  socialLoginButton('assets/images/naver_login_icon.png',
                       screenWidth * 0.07, screenWidth * 0.07),
                 ],
               )

@@ -70,7 +70,7 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
                     GestureDetector(
                       onTap: _decreaseDifficulty,
                       child: Image.asset(
-                        'assets/left_arrow.png',
+                        'assets/images/left_arrow.png',
                         height: screenHeight * 0.12,
                         width: screenHeight * 0.095,
                         fit: BoxFit.fill,
@@ -82,7 +82,7 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
                     GestureDetector(
                       onTap: _increaseDifficulty,
                       child: Image.asset(
-                        'assets/right_arrow.png',
+                        'assets/images/right_arrow.png',
                         height: screenHeight * 0.12,
                         width: screenHeight * 0.095,
                         fit: BoxFit.fill,

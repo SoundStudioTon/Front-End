@@ -7,7 +7,7 @@ Future<bool> signup(String email, String nickname, String password) async {
   try {
     Dio dio = Dio();
     final response = await dio.post(
-      'http://localhost:8080/userreg',
+      'http://sound-studio.kro.kr:8080/userreg',
       data: {
         'email': email,
         'name': nickname,

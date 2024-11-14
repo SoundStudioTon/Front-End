@@ -7,15 +7,19 @@ environment:
   sdk: ^3.5.1
 
 dependencies:
+  camera: ^0.11.0+2
   cookie_jar: ^4.0.8
   cupertino_icons: ^1.0.8
   dio: ^5.7.0
   dio_cookie_manager: ^3.1.1
   flutter:
     sdk: flutter
+  flutter_image_compress: ^2.3.0
   flutter_secure_storage: ^9.2.2
   fluttertoast: ^8.2.8
   google_fonts: ^6.2.1
+  http_parser: ^4.0.2
+  mime: ^2.0.0
   shared_preferences: ^2.3.2
 
 dev_dependencies:
@@ -30,8 +34,8 @@ flutter:
     - assets/google_login_small.png
     - assets/kakao_login_medium_wide.png
     - assets/naver_login.png
-    - assets/google_login_icon.png
-    - assets/naver_login_icon.png
-    - assets/kakao_login_icon.png
-    - assets/left_arrow.png
-    - assets/right_arrow.png
+    - assets/images/google_login_icon.png
+    - assets/images/naver_login_icon.png
+    - assets/images/kakao_login_icon.png
+    - assets/images/left_arrow.png
+    - assets/images/right_arrow.png
