@@ -1,7 +1,20 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
+import 'dart:io'; // For File operations
+
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:sound_studio/network/image_services.dart';
+
+// Define the different states of the quiz
+enum QuizState { InitialCountdown, QuizPhase, InterPhaseCountdown, Finished }
 
 class MathQuizScreen extends StatefulWidget {
   final int difficulty; // 난이도를 입력받음
@@ -12,17 +25,28 @@ class MathQuizScreen extends StatefulWidget {
 }
 
 class _MathQuizScreenState extends State<MathQuizScreen> {
-  late int remainingSeconds = 180; // 3분(180초) 타이머
-  late Timer timer;
+  // Define phases: first is silence, next three are noisy
+  final List<Phase> phases = [
+    Phase(duration: 120, hasNoise: false), // Silence phase
+    Phase(duration: 120, hasNoise: true), // Noisy phase 1
+    Phase(duration: 120, hasNoise: true), // Noisy phase 2
+    Phase(duration: 120, hasNoise: true), // Noisy phase 3
+  ];
+
+  int currentPhaseIndex = 0;
+  Timer? timer;
+
   int currentProblem = 1;
   int correctAnswers = 0;
   int totalProblems = 0;
   double totalTimeSpent = 0;
   String answer = '';
-  int countdown = 3; // 카운트다운을 위한 변수
-  bool isCountdownActive = true; // 카운트다운 활성화 여부
 
-  final audio = [
+  QuizState currentState = QuizState.InitialCountdown; // Current state
+  int countdownSeconds = 3; // Initial countdown duration
+  final int interPhaseCountdownDuration = 10; // 10-second inter-phase countdown
+
+  final List<String> audioAssets = [
     "assets/audio/pink_noise.mp3",
     "assets/audio/green_noise.mp3",
     "assets/audio/white_noise.mp3"
@@ -32,74 +56,212 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
   late int number2;
   late String operator;
 
-  // 텍스트 필드 컨트롤러
+  // Text field controller (not used in current UI but kept for potential future use)
   final TextEditingController _controller = TextEditingController();
 
-  // 문제 생성
-  void generateProblem() {
-    Random random = Random();
-    // 난이도에 맞는 자리수의 숫자를 생성
-    int minNumber = pow(10, widget.difficulty - 1)
-        .toInt(); // 최소값 (ex. 100 for difficulty 3)
-    int maxNumber = pow(10, widget.difficulty).toInt() -
-        1; // 최대값 (ex. 999 for difficulty 3)
+  // Audio player instance
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
-    number1 = random.nextInt(maxNumber - minNumber + 1) + minNumber;
-    number2 = random.nextInt(maxNumber - minNumber + 1) + minNumber;
-    operator = random.nextBool() ? '+' : '-';
+  // Camera-related variables
+  CameraController? _cameraController;
+  Timer? _imageCaptureTimer;
+  ImageApi? _imageApi;
+  String aiAnalysisResult = 'AI 분석 결과 대기 중...';
+
+  @override
+  void initState() {
+    super.initState();
+    _imageApi = ImageApi(); // Initialize ImageApi
+    assignAudioToPhases(); // Assign audio to noisy phases
+    generateProblem();
+    _initializeCamera(); // Initialize camera
+    startCountdown(); // Start initial countdown
   }
 
-  // 결과 계산
+  @override
+  void dispose() {
+    _controller.dispose(); // Dispose controller
+    timer?.cancel(); // Cancel any active timers
+    _imageCaptureTimer?.cancel(); // Cancel image capture timer
+    _audioPlayer.dispose(); // Dispose audio player
+    _cameraController?.dispose(); // Dispose camera controller
+    super.dispose();
+  }
+
+  // Assign each noise type to a unique noisy phase
+  void assignAudioToPhases() {
+    List<String> shuffledAudio = List.from(audioAssets)..shuffle();
+    int audioIndex = 0;
+
+    for (int i = 0; i < phases.length; i++) {
+      if (phases[i].hasNoise) {
+        if (audioIndex < shuffledAudio.length) {
+          phases[i].audioAsset = shuffledAudio[audioIndex];
+          audioIndex++;
+        }
+      }
+    }
+  }
+
+  // Initialize the front camera
+  Future<void> _initializeCamera() async {
+    // Request camera permission
+    var status = await Permission.camera.status;
+    if (!status.isGranted) {
+      status = await Permission.camera.request();
+      if (!status.isGranted) {
+        // Permission denied, handle appropriately
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('카메라 권한이 필요합니다.')),
+        );
+        return;
+      }
+    }
+
+    // Get available cameras
+    final cameras = await availableCameras();
+    final frontCamera = cameras.firstWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.front,
+      orElse: () => cameras.first,
+    );
+
+    _cameraController = CameraController(
+      frontCamera,
+      ResolutionPreset.medium,
+      enableAudio: false,
+    );
+
+    try {
+      await _cameraController!.initialize();
+      setState(() {}); // Update UI once the camera is initialized
+    } catch (e) {
+      // Handle camera initialization errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('카메라 초기화 실패: $e')),
+      );
+    }
+  }
+
+  // Generate a new math problem
+  void generateProblem() {
+    Random random = Random();
+    // Generate numbers based on difficulty
+    int minNumber =
+        pow(10, widget.difficulty - 1).toInt(); // e.g., 100 for difficulty 3
+    int maxNumber =
+        pow(10, widget.difficulty).toInt() - 1; // e.g., 999 for difficulty 3
+
+    operator = random.nextBool() ? '+' : '-'; // Randomly choose '+' or '-'
+
+    if (operator == '-') {
+      // Ensure number1 >= number2 to avoid negative results
+      number1 = random.nextInt(maxNumber - minNumber + 1) + minNumber;
+      number2 = random.nextInt(number1 - minNumber + 1) + minNumber;
+    } else {
+      number1 = random.nextInt(maxNumber - minNumber + 1) + minNumber;
+      number2 = random.nextInt(maxNumber - minNumber + 1) + minNumber;
+    }
+  }
+
+  // Calculate the result of the current problem
   int calculateResult() {
     return operator == '+' ? number1 + number2 : number1 - number2;
   }
 
-  // 카운트다운 시작
+  // Start a countdown based on the current state
   void startCountdown() {
-    Timer.periodic(Duration(seconds: 1), (timer) {
+    timer = Timer.periodic(Duration(seconds: 1), (countdownTimer) {
       setState(() {
-        if (countdown > 0) {
-          countdown--;
+        if (countdownSeconds > 0) {
+          countdownSeconds--;
         } else {
-          timer.cancel();
-          isCountdownActive = false; // 카운트다운이 끝나면 문제 풀기 시작
-          startTimer(); // 문제 풀이 타이머 시작
+          countdownTimer.cancel();
+          if (currentState == QuizState.InitialCountdown) {
+            // Transition from initial countdown to first quiz phase
+            setState(() {
+              currentState = QuizState.QuizPhase;
+              phaseRemainingSeconds = phases[currentPhaseIndex].duration;
+            });
+            startPhaseTimer();
+          } else if (currentState == QuizState.InterPhaseCountdown) {
+            // Transition from inter-phase countdown to next quiz phase
+            setState(() {
+              currentState = QuizState.QuizPhase;
+              phaseRemainingSeconds = phases[currentPhaseIndex].duration;
+            });
+            startPhaseTimer();
+          }
         }
       });
     });
   }
 
-  // 문제 풀이 시간 타이머
-  void startTimer() {
-    timer = Timer.periodic(Duration(seconds: 1), (timer) {
+  int phaseRemainingSeconds = 120; // Each phase is 2 minutes
+
+  // Start the timer for the current quiz phase
+  void startPhaseTimer() {
+    // Start audio if the current phase has noise
+    if (phases[currentPhaseIndex].hasNoise) {
+      playAssignedAudio(phases[currentPhaseIndex].audioAsset!);
+    }
+
+    // Start image capture timer
+    _startImageCaptureTimer();
+
+    timer = Timer.periodic(Duration(seconds: 1), (Timer t) {
       setState(() {
-        if (remainingSeconds > 0) {
-          remainingSeconds--;
+        if (phaseRemainingSeconds > 0) {
+          phaseRemainingSeconds--;
         } else {
-          timer.cancel();
-          showResults();
+          // Phase ended, move to inter-phase countdown or finish
+          t.cancel();
+          stopAudio(); // Stop any playing audio
+          _stopImageCaptureTimer(); // Stop image capture
+
+          currentPhaseIndex++;
+          if (currentPhaseIndex < phases.length) {
+            // Start inter-phase countdown if more phases remain
+            setState(() {
+              currentState = QuizState.InterPhaseCountdown;
+              countdownSeconds = interPhaseCountdownDuration;
+            });
+            startCountdown();
+          } else {
+            // All phases completed, show results
+            setState(() {
+              currentState = QuizState.Finished;
+            });
+            showResults();
+          }
         }
       });
     });
   }
 
-  // 시간 포맷을 분:초로 변환
+  // Play the assigned audio for the current phase
+  void playAssignedAudio(String audioAsset) async {
+    // Stop any existing audio before playing a new one
+    await _audioPlayer.stop();
+    await _audioPlayer.setReleaseMode(ReleaseMode.loop); // Loop the audio
+    await _audioPlayer
+        .play(AssetSource(audioAsset.replaceFirst('assets/', '')));
+  }
+
+  // Stop any playing audio
+  void stopAudio() {
+    _audioPlayer.stop();
+  }
+
+  // Format time from seconds to MM:SS
   String formatTime(int seconds) {
     int minutes = seconds ~/ 60;
     int remainingSeconds = seconds % 60;
     return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  @override
-  void initState() {
-    super.initState();
-    generateProblem();
-    startCountdown(); // 카운트다운 시작
-  }
-
-  // 결과 화면
+  // Display the results dialog
   void showResults() {
-    double averageTime = totalTimeSpent / totalProblems;
+    double averageTime = totalProblems > 0 ? totalTimeSpent / totalProblems : 0;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -113,6 +275,7 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
+              // Optionally, navigate back or restart the quiz
             },
             child: Text("확인"),
           ),
@@ -121,8 +284,11 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
     );
   }
 
-  // 숫자 입력 처리
+  // Handle number pad button presses
   void onNumberPressed(String value) {
+    if (currentState != QuizState.QuizPhase)
+      return; // Only allow input during quiz phases
+
     setState(() {
       if (value == 'delete') {
         if (answer.isNotEmpty) {
@@ -134,18 +300,22 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
         }
       } else {
         if (answer.length < 8) {
-          // 최대 8자리로 제한
+          // Limit to 8 digits
           answer += value;
         }
       }
     });
   }
 
-  // submitAnswer 메서드 수정
+  // Submit the user's answer
   void submitAnswer() {
     setState(() {
       totalProblems++;
-      totalTimeSpent += (180 - remainingSeconds) / totalProblems;
+      // Calculate time spent on this problem
+      double timeSpent =
+          (phases[currentPhaseIndex].duration - phaseRemainingSeconds) /
+              totalProblems;
+      totalTimeSpent += timeSpent;
 
       if (int.parse(answer) == calculateResult()) {
         correctAnswers++;
@@ -156,7 +326,60 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
     });
   }
 
-  // 넘버패드 위젯
+  // Start the image capture timer (captures image every 1 second)
+  void _startImageCaptureTimer() {
+    _imageCaptureTimer = Timer.periodic(Duration(seconds: 1), (timer) async {
+      await _captureAndAnalyzeImage();
+    });
+  }
+
+  // Stop the image capture timer
+  void _stopImageCaptureTimer() {
+    _imageCaptureTimer?.cancel();
+    _imageCaptureTimer = null;
+  }
+
+  // Capture an image, compress it, and send it for AI analysis
+  Future<void> _captureAndAnalyzeImage() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return;
+    }
+
+    try {
+      // Capture the image
+      XFile imageFile = await _cameraController!.takePicture();
+      File file = File(imageFile.path);
+
+      // Compress the image
+      Uint8List? compressedBytes = await FlutterImageCompress.compressWithFile(
+        file.absolute.path,
+        quality: 60, // 품질을 0~100 사이로 설정
+        minWidth: 800, // 필요에 따라 해상도 조절
+        minHeight: 600,
+      );
+
+      if (compressedBytes == null) {
+        throw Exception('이미지 압축 실패');
+      }
+
+      // Upload the image and get AI analysis
+      String aiResult =
+          await _imageApi!.uploadImage(compressedBytes, imageFile.name);
+
+      // Update the AI analysis result on the UI
+      setState(() {
+        aiAnalysisResult = aiResult;
+      });
+    } catch (e) {
+      // Handle errors (e.g., camera errors, upload errors)
+      print('Error capturing or uploading image: $e');
+      setState(() {
+        aiAnalysisResult = 'AI 분석 실패';
+      });
+    }
+  }
+
+  // Build the number pad UI
   Widget buildNumberPad(double screenWidth, double screenHeight) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
@@ -172,6 +395,7 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
     );
   }
 
+  // Build a row of buttons for the number pad
   Widget buildNumberRow(
       List<String> numbers, double screenHeight, double screenWidth) {
     return Row(
@@ -181,7 +405,7 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
           child: Padding(
             padding: EdgeInsets.all(4),
             child: AspectRatio(
-              aspectRatio: 1.5, // 버튼의 가로:세로 비율
+              aspectRatio: 1.5, // Button width:height ratio
               child: ElevatedButton(
                 onPressed: () => onNumberPressed(number),
                 style: ElevatedButton.styleFrom(
@@ -220,11 +444,18 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _controller.dispose(); // 컨트롤러 메모리 해제
-    timer.cancel();
-    super.dispose();
+  // Determine color based on AI analysis result
+  Color _getAiResultColor(String result) {
+    switch (result) {
+      case '집중함':
+        return Colors.green;
+      case '집중하지 않음':
+        return Colors.orange;
+      case '졸음':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
@@ -233,7 +464,7 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
       backgroundColor: Colors.white,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // 화면 크기에 따라 동적으로 비율 조정
+          // Dynamically adjust sizes based on screen size
           double fontSize = constraints.maxWidth * 0.08;
           double padding = constraints.maxWidth * 0.1;
           double screenWidth = constraints.maxWidth;
@@ -242,30 +473,53 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
           return Padding(
             padding: EdgeInsets.all(padding),
             child: Center(
-              child: isCountdownActive
-                  ? Text(
-                      countdown > 0 ? '$countdown' : '시작',
-                      style: TextStyle(
-                          fontSize: fontSize, fontWeight: FontWeight.bold),
-                    )
-                  : Column(
+              child: () {
+                switch (currentState) {
+                  case QuizState.InitialCountdown:
+                  case QuizState.InterPhaseCountdown:
+                    return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          formatTime(remainingSeconds),
+                          '$countdownSeconds',
                           style: TextStyle(
-                              fontSize: fontSize * 0.5,
-                              fontWeight: FontWeight.bold),
+                              fontSize: fontSize, fontWeight: FontWeight.bold),
                         ),
-                        SizedBox(height: screenHeight * 0.03),
+                        SizedBox(height: 20),
                         Text(
-                          "$currentProblem번 문제",
+                          currentState == QuizState.InitialCountdown
+                              ? '시작 준비 중...'
+                              : '다음 단계 준비 중...',
                           style: TextStyle(
-                              fontSize: fontSize * 0.5,
-                              fontWeight: FontWeight.bold),
+                              fontSize: fontSize * 0.3,
+                              fontWeight: FontWeight.normal),
                         ),
-                        SizedBox(height: padding * 0.5),
-                        // 문제 표시 부분 추가
+                      ],
+                    );
+                  case QuizState.QuizPhase:
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Timer and Problem Info
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              formatTime(phaseRemainingSeconds),
+                              style: TextStyle(
+                                  fontSize: fontSize * 0.5,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              "문제 $currentProblem",
+                              style: TextStyle(
+                                  fontSize: fontSize * 0.5,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        // Display the math problem
                         Container(
                           padding: EdgeInsets.all(padding * 0.5),
                           decoration: BoxDecoration(
@@ -284,7 +538,7 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
                           ),
                         ),
                         SizedBox(height: padding * 0.5),
-                        // 답 입력창
+                        // Answer input field
                         Container(
                           width: double.infinity,
                           padding: EdgeInsets.symmetric(
@@ -334,17 +588,40 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
                             ],
                           ),
                         ),
+                        SizedBox(height: screenHeight * 0.02),
+                        // Display AI Analysis Result
+                        Text(
+                          'AI 분석: $aiAnalysisResult',
+                          style: TextStyle(
+                            fontSize: fontSize * 0.35,
+                            color: _getAiResultColor(aiAnalysisResult),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         SizedBox(height: screenHeight * 0.03),
-                        // 넘버패드 크기 조절
+                        // Number pad
                         Expanded(
                           child: buildNumberPad(screenWidth, screenHeight),
                         ),
                       ],
-                    ),
+                    );
+                  case QuizState.Finished:
+                    return Container(); // Nothing displayed as results are shown via dialog
+                }
+              }(),
             ),
           );
         },
       ),
     );
   }
+}
+
+// Phase class definition
+class Phase {
+  final int duration; // Duration in seconds
+  final bool hasNoise;
+  String? audioAsset;
+
+  Phase({required this.duration, required this.hasNoise, this.audioAsset});
 }

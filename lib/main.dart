@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sound_studio/screens/difficulty_screen.dart';
 import 'package:sound_studio/screens/login_screen.dart';
 import 'package:sound_studio/screens/splash_screen.dart';
 
@@ -12,7 +13,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: LoginScreen(),
+      home: DifficultyScreen(),
       theme: ThemeData(
         brightness: Brightness.light,
         primaryColor: Colors.blue,
