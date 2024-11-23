@@ -22,6 +22,12 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
   int countdown = 3; // 카운트다운을 위한 변수
   bool isCountdownActive = true; // 카운트다운 활성화 여부
 
+  final audio = [
+    "assets/audio/pink_noise.mp3",
+    "assets/audio/green_noise.mp3",
+    "assets/audio/white_noise.mp3"
+  ];
+
   late int number1;
   late int number2;
   late String operator;

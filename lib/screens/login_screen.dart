@@ -42,6 +42,8 @@ class LoginScreen extends StatelessWidget {
                   controller: emailController,
                   decoration: InputDecoration(
                     labelText: '이메일',
+                    labelStyle: GoogleFonts.inter(
+                        color: Colors.grey, fontWeight: FontWeight.w300),
                     focusColor: Colors.black,
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.grey),
@@ -67,6 +69,8 @@ class LoginScreen extends StatelessWidget {
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: '비밀번호',
+                    labelStyle: GoogleFonts.inter(
+                        color: Colors.grey, fontWeight: FontWeight.w300),
                     focusColor: Colors.black,
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.grey),
