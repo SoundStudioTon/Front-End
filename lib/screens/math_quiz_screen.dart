@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
-import 'dart:io'; // For File operations
+import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -259,27 +259,18 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
     return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  // Display the results dialog
+  // Display the results screen
   void showResults() {
     double averageTime = totalProblems > 0 ? totalTimeSpent / totalProblems : 0;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: Text("결과"),
-        content: Text(
-          "정확도: ${(correctAnswers / totalProblems * 100).toStringAsFixed(1)}%\n"
-          "평균 문제 풀이 시간: ${averageTime.toStringAsFixed(2)}초",
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ResultsScreen(
+          phases: phases,
+          correctAnswers: correctAnswers,
+          totalProblems: totalProblems,
+          averageTime: averageTime,
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Optionally, navigate back or restart the quiz
-            },
-            child: Text("확인"),
-          ),
-        ],
       ),
     );
   }
@@ -369,6 +360,8 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
       // Update the AI analysis result on the UI
       setState(() {
         aiAnalysisResult = aiResult;
+        // 현재 페이즈의 AI 분석 결과 리스트에 추가
+        phases[currentPhaseIndex].aiAnalysisResults.add(aiResult);
       });
     } catch (e) {
       // Handle errors (e.g., camera errors, upload errors)
@@ -606,7 +599,9 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
                       ],
                     );
                   case QuizState.Finished:
-                    return Container(); // Nothing displayed as results are shown via dialog
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
                 }
               }(),
             ),
@@ -622,6 +617,92 @@ class Phase {
   final int duration; // Duration in seconds
   final bool hasNoise;
   String? audioAsset;
+  List<String> aiAnalysisResults = []; // AI 분석 결과를 저장할 리스트 추가
 
   Phase({required this.duration, required this.hasNoise, this.audioAsset});
+}
+
+// ResultsScreen 클래스 정의
+class ResultsScreen extends StatelessWidget {
+  final List<Phase> phases;
+  final int correctAnswers;
+  final int totalProblems;
+  final double averageTime;
+
+  ResultsScreen({
+    required this.phases,
+    required this.correctAnswers,
+    required this.totalProblems,
+    required this.averageTime,
+  });
+
+  // 페이즈별 집중도율 계산
+  double calculateConcentrationRate(Phase phase) {
+    int totalSeconds = phase.aiAnalysisResults.length; // 실제 분석된 초 수
+    int concentratingCount =
+        phase.aiAnalysisResults.where((result) => result == '집중함').length;
+    if (totalSeconds == 0) return 0.0;
+    return concentratingCount / totalSeconds;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double overallConcentrationRate = 0.0;
+    for (var phase in phases) {
+      overallConcentrationRate += calculateConcentrationRate(phase);
+    }
+    overallConcentrationRate = (overallConcentrationRate / phases.length) * 100;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('결과'),
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // 전체 결과 표시
+            Text(
+              '정확도: ${(correctAnswers / totalProblems * 100).toStringAsFixed(1)}%',
+              style: TextStyle(fontSize: 18),
+            ),
+            Text(
+              '평균 문제 풀이 시간: ${averageTime.toStringAsFixed(2)}초',
+              style: TextStyle(fontSize: 18),
+            ),
+            Text(
+              '전체 집중도율: ${overallConcentrationRate.toStringAsFixed(1)}%',
+              style: TextStyle(fontSize: 18),
+            ),
+            SizedBox(height: 16.0),
+            Expanded(
+              child: ListView.builder(
+                itemCount: phases.length,
+                itemBuilder: (context, index) {
+                  Phase phase = phases[index];
+                  double concentrationRate =
+                      calculateConcentrationRate(phase) * 100; // 퍼센트로 표시
+                  return Card(
+                    child: ListTile(
+                      title: Text('페이즈 ${index + 1}'),
+                      subtitle: Text(
+                        '집중도율: ${concentrationRate.toStringAsFixed(1)}%',
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context)
+                    .popUntil((route) => route.isFirst); // 홈 화면으로 이동
+              },
+              child: Text('홈으로 돌아가기'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
