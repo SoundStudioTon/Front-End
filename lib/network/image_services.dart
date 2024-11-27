@@ -50,7 +50,8 @@ class ImageApi {
   }
 
   /// `uploadImage` API 호출
-  Future<String> uploadImage(Uint8List fileBytes, String fileName) async {
+  Future<String> uploadImage(
+      int userId, Uint8List fileBytes, String fileName) async {
     try {
       // 파일의 MIME 타입을 추측
       final mimeType = lookupMimeType(fileName) ?? 'application/octet-stream';
@@ -71,6 +72,9 @@ class ImageApi {
       // POST 요청 전송
       final response = await _dio.post(
         '/uploadImage',
+        queryParameters: {
+          'userId': userId, // userId를 쿼리 매개변수로 추가
+        },
         data: formData,
         options: Options(
           headers: {

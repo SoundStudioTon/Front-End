@@ -12,6 +12,11 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:sound_studio/network/image_services.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:sound_studio/network/noise_services.dart';
+import 'package:sound_studio/network/user_services.dart';
 
 // Define the different states of the quiz
 enum QuizState { InitialCountdown, QuizPhase, InterPhaseCountdown, Finished }
@@ -25,6 +30,13 @@ class MathQuizScreen extends StatefulWidget {
 }
 
 class _MathQuizScreenState extends State<MathQuizScreen> {
+  // 소음 파일과 번호 매핑
+  final Map<String, int> audioAssetToNumber = {
+    "assets/audio/pink_noise.mp3": 1,
+    "assets/audio/green_noise.mp3": 2,
+    "assets/audio/white_noise.mp3": 3,
+  };
+
   // Define phases: first is silence, next three are noisy
   final List<Phase> phases = [
     Phase(duration: 120, hasNoise: false), // Silence phase
@@ -68,12 +80,16 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
   ImageApi? _imageApi;
   String aiAnalysisResult = 'AI 분석 결과 대기 중...';
 
+  // 문제 시작 시간을 저장할 변수
+  DateTime? problemStartTime;
+
   @override
   void initState() {
     super.initState();
     _imageApi = ImageApi(); // Initialize ImageApi
     assignAudioToPhases(); // Assign audio to noisy phases
     generateProblem();
+    problemStartTime = DateTime.now(); // 초기화
     _initializeCamera(); // Initialize camera
     startCountdown(); // Start initial countdown
   }
@@ -161,6 +177,9 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
       number1 = random.nextInt(maxNumber - minNumber + 1) + minNumber;
       number2 = random.nextInt(maxNumber - minNumber + 1) + minNumber;
     }
+
+    // 문제 시작 시간을 현재 시간으로 설정
+    problemStartTime = DateTime.now();
   }
 
   // Calculate the result of the current problem
@@ -262,6 +281,17 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
   // Display the results screen
   void showResults() {
     double averageTime = totalProblems > 0 ? totalTimeSpent / totalProblems : 0;
+
+    // 최적의 소음 번호 계산
+    int? bestNoiseNumber = calculateBestNoise();
+
+    // accessToken 가져오기
+    AuthService.storage.read(key: 'accessToken').then((accessToken) {
+      if (accessToken != null && bestNoiseNumber != null) {
+        saveFirstNoiseData(accessToken, bestNoiseNumber);
+      }
+    });
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -273,6 +303,52 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
         ),
       ),
     );
+  }
+
+  // 최적의 소음 번호 계산 함수 추가
+  int? calculateBestNoise() {
+    // 소음이 있는 페이즈들만 필터링
+    List<Phase> noisyPhases = phases.where((phase) => phase.hasNoise).toList();
+
+    if (noisyPhases.isEmpty) {
+      return null; // 소음이 있는 페이즈가 없으면 null 반환
+    }
+
+    // 각 페이즈의 집중도와 평균 풀이 시간 계산
+    List<Map<String, dynamic>> phaseStats = noisyPhases.map((phase) {
+      double concentrationRate = phase.calculateConcentrationRate();
+      double averageTime = phase.totalProblemsAttempted > 0
+          ? (phase.totalTimeSpent / phase.totalProblemsAttempted)
+          : double.infinity; // 문제를 풀지 않았다면 무한대로 설정
+
+      return {
+        'phase': phase,
+        'concentrationRate': concentrationRate,
+        'averageTime': averageTime,
+      };
+    }).toList();
+
+    // 집중도 내림차순, 평균 시간 오름차순으로 정렬
+    phaseStats.sort((a, b) {
+      int concentrationComparison =
+          b['concentrationRate'].compareTo(a['concentrationRate']);
+      if (concentrationComparison != 0) {
+        return concentrationComparison;
+      } else {
+        return a['averageTime'].compareTo(b['averageTime']);
+      }
+    });
+
+    // 가장 좋은 페이즈 선택
+    Phase bestPhase = phaseStats.first['phase'];
+
+    // 해당 페이즈의 소음 파일에 매핑된 번호 반환
+    String? audioAsset = bestPhase.audioAsset;
+    if (audioAsset != null) {
+      return audioAssetToNumber[audioAsset];
+    }
+
+    return null;
   }
 
   // Handle number pad button presses
@@ -301,19 +377,27 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
   // Submit the user's answer
   void submitAnswer() {
     setState(() {
-      totalProblems++;
-      // Calculate time spent on this problem
+      DateTime endTime = DateTime.now();
       double timeSpent =
-          (phases[currentPhaseIndex].duration - phaseRemainingSeconds) /
-              totalProblems;
+          endTime.difference(problemStartTime!).inSeconds.toDouble();
+
+      totalProblems++;
       totalTimeSpent += timeSpent;
+
+      // 현재 페이즈 가져오기
+      Phase currentPhase = phases[currentPhaseIndex];
+      currentPhase.totalProblemsAttempted++;
+      currentPhase.totalTimeSpent += timeSpent;
 
       if (int.parse(answer) == calculateResult()) {
         correctAnswers++;
+        currentPhase.correctAnswers++;
       }
+
       answer = '';
       currentProblem++;
       generateProblem();
+      problemStartTime = DateTime.now(); // 다음 문제를 위해 시작 시간 초기화
     });
   }
 
@@ -353,16 +437,18 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
         throw Exception('이미지 압축 실패');
       }
 
-      // Upload the image and get AI analysis
-      String aiResult =
-          await _imageApi!.uploadImage(compressedBytes, imageFile.name);
+      int? userId = await getUserId();
+      if (userId != null) {
+        String aiResult = await _imageApi!
+            .uploadImage(userId, compressedBytes, imageFile.name);
 
-      // Update the AI analysis result on the UI
-      setState(() {
-        aiAnalysisResult = aiResult;
-        // 현재 페이즈의 AI 분석 결과 리스트에 추가
-        phases[currentPhaseIndex].aiAnalysisResults.add(aiResult);
-      });
+        // Update the AI analysis result on the UI
+        setState(() {
+          aiAnalysisResult = aiResult;
+          // 현재 페이즈의 AI 분석 결과 리스트에 추가
+          phases[currentPhaseIndex].aiAnalysisResults.add(aiResult);
+        });
+      }
     } catch (e) {
       // Handle errors (e.g., camera errors, upload errors)
       print('Error capturing or uploading image: $e');
@@ -619,7 +705,21 @@ class Phase {
   String? audioAsset;
   List<String> aiAnalysisResults = []; // AI 분석 결과를 저장할 리스트 추가
 
+  // 페이즈별 통계 데이터 추가
+  int totalProblemsAttempted = 0;
+  int correctAnswers = 0;
+  double totalTimeSpent = 0.0;
+
   Phase({required this.duration, required this.hasNoise, this.audioAsset});
+
+  // 집중도율 계산 함수 추가
+  double calculateConcentrationRate() {
+    int totalSeconds = aiAnalysisResults.length; // 실제 분석된 초 수
+    int concentratingCount =
+        aiAnalysisResults.where((result) => result == '집중함').length;
+    if (totalSeconds == 0) return 0.0;
+    return concentratingCount / totalSeconds;
+  }
 }
 
 // ResultsScreen 클래스 정의
@@ -638,11 +738,7 @@ class ResultsScreen extends StatelessWidget {
 
   // 페이즈별 집중도율 계산
   double calculateConcentrationRate(Phase phase) {
-    int totalSeconds = phase.aiAnalysisResults.length; // 실제 분석된 초 수
-    int concentratingCount =
-        phase.aiAnalysisResults.where((result) => result == '집중함').length;
-    if (totalSeconds == 0) return 0.0;
-    return concentratingCount / totalSeconds;
+    return phase.calculateConcentrationRate();
   }
 
   @override
@@ -682,11 +778,28 @@ class ResultsScreen extends StatelessWidget {
                   Phase phase = phases[index];
                   double concentrationRate =
                       calculateConcentrationRate(phase) * 100; // 퍼센트로 표시
+
+                  // 페이즈별 정확도와 평균 풀이 시간 계산
+                  double phaseAccuracy = phase.totalProblemsAttempted > 0
+                      ? (phase.correctAnswers / phase.totalProblemsAttempted) *
+                          100
+                      : 0.0;
+                  double phaseAverageTime = phase.totalProblemsAttempted > 0
+                      ? (phase.totalTimeSpent / phase.totalProblemsAttempted)
+                      : 0.0;
+
                   return Card(
                     child: ListTile(
                       title: Text('페이즈 ${index + 1}'),
-                      subtitle: Text(
-                        '집중도율: ${concentrationRate.toStringAsFixed(1)}%',
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              '집중도율: ${concentrationRate.toStringAsFixed(1)}%'),
+                          Text('정확도: ${phaseAccuracy.toStringAsFixed(1)}%'),
+                          Text(
+                              '평균 풀이 시간: ${phaseAverageTime.toStringAsFixed(2)}초'),
+                        ],
                       ),
                     ),
                   );

@@ -43,14 +43,15 @@ Future<bool?> login(String email, String password) async {
 
     if (response.statusCode == 200) {
       final loginResponse = UserLoginResponse.fromJson(response.data);
+      print(response.data);
 
       // 로그인 성공시 토큰 저장
       await AuthService.saveTokens(
-        accessToken: loginResponse.accessToken,
-        refreshToken: loginResponse.refreshToken,
-        email: loginResponse.email,
-        name: loginResponse.name,
-      );
+          accessToken: loginResponse.accessToken,
+          refreshToken: loginResponse.refreshToken,
+          email: loginResponse.email,
+          name: loginResponse.name,
+          userId: loginResponse.userId);
 
       return true;
     }
@@ -87,13 +88,14 @@ class UserLoginResponse {
   final String refreshToken;
   final String email;
   final String name;
+  final int userId;
 
-  UserLoginResponse({
-    required this.accessToken,
-    required this.refreshToken,
-    required this.email,
-    required this.name,
-  });
+  UserLoginResponse(
+      {required this.accessToken,
+      required this.refreshToken,
+      required this.email,
+      required this.name,
+      required this.userId});
 
   factory UserLoginResponse.fromJson(Map<String, dynamic> json) {
     return UserLoginResponse(
@@ -101,6 +103,7 @@ class UserLoginResponse {
       refreshToken: json['refreshToken'],
       email: json['email'],
       name: json['name'],
+      userId: json['userId'],
     );
   }
 }
@@ -143,11 +146,13 @@ class AuthService {
     required String refreshToken,
     required String email,
     required String name,
+    required int userId,
   }) async {
     await storage.write(key: 'accessToken', value: accessToken);
     await storage.write(key: 'refreshToken', value: refreshToken);
     await storage.write(key: 'email', value: email);
     await storage.write(key: 'userName', value: name);
+    await storage.write(key: 'userId', value: userId.toString());
   }
 
   // 토큰 삭제
@@ -174,6 +179,7 @@ class AuthService {
           refreshToken: response.refreshToken,
           email: response.email,
           name: response.name,
+          userId: response.userId,
         );
         return true;
       }
@@ -185,5 +191,23 @@ class AuthService {
       print('Auto login error: $e');
       return false;
     }
+  }
+}
+
+Future<int?> getUserId() async {
+  try {
+    // 'userId' 값을 읽음
+    String? userIdString = await AuthService.storage.read(key: 'userId');
+
+    // null 체크 후 int로 변환
+    if (userIdString != null) {
+      return int.parse(userIdString); // int로 변환
+    } else {
+      return null; // userId가 없을 경우 null 반환
+    }
+  } catch (e) {
+    // 변환 중 에러 처리
+    print('userId 변환 에러: $e');
+    return null;
   }
 }

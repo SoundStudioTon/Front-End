@@ -205,7 +205,7 @@ class _MainScreenState extends State<MainScreen> {
             SizedBox(height: height * 0.05),
             ElevatedButton(
               onPressed: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
                       builder: (context) => DifficultyScreen(),

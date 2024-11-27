@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart'; // 패키지 추가
 import 'package:path/path.dart' as path;
 import 'package:sound_studio/network/image_services.dart';
+import 'package:sound_studio/network/user_services.dart';
 
 class StudyScreen extends StatefulWidget {
   @override
@@ -112,11 +113,15 @@ class _StudyScreenState extends State<StudyScreen> {
           }
 
           String fileName = path.basename(file.path);
-          String aiResponse =
-              await _imageApi.uploadImage(compressedBytes, fileName);
-          setState(() {
-            _latestAiResponse = aiResponse;
-          });
+
+          int? userId = await getUserId();
+          if (userId != null) {
+            String aiResponse =
+                await _imageApi.uploadImage(userId, compressedBytes, fileName);
+            setState(() {
+              _latestAiResponse = aiResponse;
+            });
+          }
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('에러 발생: $e')),

@@ -94,7 +94,7 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
                 ElevatedButton(
                   onPressed: () {
                     // 테스트 시작 로직
-                    Navigator.push(
+                    Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
