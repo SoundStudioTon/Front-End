@@ -351,7 +351,7 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
     return null;
   }
 
-  // Handle number pad button presses
+  // 넘버패드 핸들링
   void onNumberPressed(String value) {
     if (currentState != QuizState.QuizPhase)
       return; // Only allow input during quiz phases
@@ -374,7 +374,7 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
     });
   }
 
-  // Submit the user's answer
+  // 답 제출 메소드
   void submitAnswer() {
     setState(() {
       DateTime endTime = DateTime.now();
@@ -401,20 +401,20 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
     });
   }
 
-  // Start the image capture timer (captures image every 1 second)
+  // 1초마다 이미지 캡처
   void _startImageCaptureTimer() {
     _imageCaptureTimer = Timer.periodic(Duration(seconds: 1), (timer) async {
       await _captureAndAnalyzeImage();
     });
   }
 
-  // Stop the image capture timer
+  // 타이머 종료
   void _stopImageCaptureTimer() {
     _imageCaptureTimer?.cancel();
     _imageCaptureTimer = null;
   }
 
-  // Capture an image, compress it, and send it for AI analysis
+  //이미지 캡처 후에 결과 반환.
   Future<void> _captureAndAnalyzeImage() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return;
@@ -543,7 +543,6 @@ class _MathQuizScreenState extends State<MathQuizScreen> {
       backgroundColor: Colors.white,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Dynamically adjust sizes based on screen size
           double fontSize = constraints.maxWidth * 0.08;
           double padding = constraints.maxWidth * 0.1;
           double screenWidth = constraints.maxWidth;
@@ -750,6 +749,7 @@ class ResultsScreen extends StatelessWidget {
     overallConcentrationRate = (overallConcentrationRate / phases.length) * 100;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('결과'),
       ),
@@ -789,6 +789,7 @@ class ResultsScreen extends StatelessWidget {
                       : 0.0;
 
                   return Card(
+                    color: Colors.white,
                     child: ListTile(
                       title: Text('페이즈 ${index + 1}'),
                       subtitle: Column(

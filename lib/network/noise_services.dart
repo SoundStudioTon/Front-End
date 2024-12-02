@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:path_provider/path_provider.dart';
 
 Future<bool> checkUserNoiseData(String accessToken) async {
   try {
@@ -127,6 +129,19 @@ Future<String> noiseTransformation(String accesssToken, int noiseNumber) async {
     }
   } catch (e) {
     print("Exception occured : ${e}");
+    return "Error";
+  }
+}
+
+Future<String> saveAudioFile(String base64audio) async {
+  try {
+    List<int> audioBytes = base64Decode(base64audio);
+
+    Directory tempDir = await getTemporaryDirectory();
+    String tempPath = '${tempDir.path}/transform_audio.mp3';
+    return tempPath;
+  } catch (e) {
+    print("Exception : ${e}");
     return "Error";
   }
 }
