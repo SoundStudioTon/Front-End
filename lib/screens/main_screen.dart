@@ -151,17 +151,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ];
       case 1:
-        return [
-          IconButton(
-            icon: Icon(Icons.calendar_today, color: Colors.black),
-            onPressed: () {
-              // 달력 기능 구현
-            },
-          ),
-          SizedBox(
-            width: 16,
-          ),
-        ];
+        return [];
 
       case 2:
         return [];
@@ -205,7 +195,7 @@ class _MainScreenState extends State<MainScreen> {
             SizedBox(height: height * 0.05),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushReplacement(
+                Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => DifficultyScreen(),

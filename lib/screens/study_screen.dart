@@ -7,9 +7,11 @@ import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart'; // 패키지 추가
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path/path.dart' as path;
+import 'package:audioplayers/audioplayers.dart'; // 오디오 플레이어 패키지 추가
 import 'package:sound_studio/network/image_services.dart';
+import 'package:sound_studio/network/noise_services.dart';
 import 'package:sound_studio/network/user_services.dart';
 
 class StudyScreen extends StatefulWidget {
@@ -29,11 +31,20 @@ class _StudyScreenState extends State<StudyScreen> {
 
   String? _latestAiResponse;
 
+  final Map<String, int> audioAssetToNumber = {
+    "audio/pink_noise.mp3": 1,
+    "audio/green_noise.mp3": 2,
+    "audio/white_noise.mp3": 3,
+  };
+
+  AudioPlayer? _audioPlayer; // 오디오 플레이어 객체 추가
+
   @override
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     initCamera();
+    _audioPlayer = AudioPlayer(); // 오디오 플레이어 초기화
   }
 
   Future<void> initCamera() async {
@@ -45,7 +56,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
       _cameraController = CameraController(
         isRearCameraSelected ? cameras![0] : cameras![1],
-        ResolutionPreset.high, // 해상도를 조정하여 비율에 맞게 설정
+        ResolutionPreset.high,
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -67,7 +78,7 @@ class _StudyScreenState extends State<StudyScreen> {
     initCamera();
   }
 
-  void startStudying() {
+  void startStudying() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       print('카메라가 초기화되지 않았습니다.');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,10 +89,60 @@ class _StudyScreenState extends State<StudyScreen> {
 
     if (isStudying) {
       _timer?.cancel();
+      _audioPlayer?.stop(); // 오디오 재생 중지
       setState(() {
         isStudying = false;
       });
     } else {
+      // AccessToken 가져오기
+      String? accessToken = await AuthService.storage.read(key: 'accessToken');
+      if (accessToken == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('로그인이 필요합니다.')),
+        );
+        return;
+      }
+
+      // 소음 번호 가져오기
+      int noiseNumber = await getNoiseNumber(accessToken);
+
+      if (noiseNumber == -1) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('소음 데이터를 가져오지 못했습니다.')),
+        );
+        return;
+      }
+
+      // 소음 번호를 오디오 파일로 매핑
+      String? audioAsset;
+      audioAssetToNumber.forEach((key, value) {
+        if (value == noiseNumber) {
+          audioAsset = key;
+        }
+      });
+
+      if (audioAsset == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('해당하는 소음 데이터가 없습니다.')),
+        );
+        return;
+      }
+
+      // 오디오 반복 재생 설정
+      _audioPlayer?.setReleaseMode(ReleaseMode.loop);
+
+      try {
+        // 오디오 재생
+        print(audioAsset);
+        await _audioPlayer?.play(AssetSource(audioAsset!));
+      } catch (e) {
+        print(e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오디오를 재생할 수 없습니다: $e')),
+        );
+        return;
+      }
+
       _timer = Timer.periodic(Duration(seconds: 1), (Timer timer) async {
         if (isUploading) return;
         setState(() {
@@ -96,12 +157,11 @@ class _StudyScreenState extends State<StudyScreen> {
           Uint8List? compressedBytes =
               await FlutterImageCompress.compressWithFile(
             file.absolute.path,
-            quality: 60, // 품질을 0~100 사이로 설정
-            minWidth: 800, // 필요에 따라 해상도 조절
+            quality: 60,
+            minWidth: 800,
             minHeight: 600,
           );
 
-          // 압축 결과가 null인지 확인
           if (compressedBytes == null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('이미지 압축에 실패했습니다.')),
@@ -142,6 +202,7 @@ class _StudyScreenState extends State<StudyScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _audioPlayer?.dispose(); // 오디오 플레이어 해제
     _cameraController?.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -163,9 +224,14 @@ class _StudyScreenState extends State<StudyScreen> {
                 color: Colors.black,
                 child: _cameraController != null &&
                         _cameraController!.value.isInitialized
-                    ? AspectRatio(
-                        aspectRatio: 3 / 4, // 3:4 비율로 설정
-                        child: CameraPreview(_cameraController!),
+                    ? Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()
+                          ..scale(-1.0, 1.0), // 좌우 반전
+                        child: AspectRatio(
+                          aspectRatio: 3 / 4, // 3:4 비율로 설정
+                          child: CameraPreview(_cameraController!),
+                        ),
                       )
                     : Center(child: CircularProgressIndicator()),
               ),

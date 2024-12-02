@@ -95,7 +95,7 @@ class LoginScreen extends StatelessWidget {
 
                   print(loginResponse);
                   if (loginResponse == true) {
-                    Navigator.push(
+                    Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                           builder: (context) => MainScreen(),

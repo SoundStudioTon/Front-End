@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -76,5 +78,55 @@ Future<bool> saveFirstNoiseData(String accessToken, int noiseNumber) async {
     }
     print('Save first noise data error: $e');
     return false;
+  }
+}
+
+Future<int> getNoiseNumber(String accessToken) async {
+  try {
+    Dio dio = Dio();
+    final response = await dio.post(
+      'http://sound-studio.kro.kr:8080/api/noise/getnoisenumber',
+      queryParameters: {
+        'AccessToken': accessToken,
+      },
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+
+    // Check response status and handle data
+    if (response.statusCode == 200) {
+      return response.data;
+    } else {
+      print('Error: ${response.statusCode}');
+      return -1;
+    }
+  } catch (e) {
+    print('Exception occurred: $e');
+    return -1;
+  }
+}
+
+Future<String> noiseTransformation(String accesssToken, int noiseNumber) async {
+  try {
+    Dio dio = Dio(BaseOptions(
+      connectTimeout: Duration(milliseconds: 1000),
+      receiveTimeout: Duration(milliseconds: 5000),
+    ));
+    final response = await dio.post(
+        'http://sound-studio.kro.kr:8080/api/noise/send',
+        queryParameters: {
+          "AccessToken": accesssToken,
+          "noiseNumber": noiseNumber
+        });
+
+    if (response.statusCode == 200) {
+      final responseData = response.data;
+      return responseData;
+    } else {
+      print('Error : ${response.statusCode}');
+      return "Error";
+    }
+  } catch (e) {
+    print("Exception occured : ${e}");
+    return "Error";
   }
 }
