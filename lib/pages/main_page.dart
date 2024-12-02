@@ -36,7 +36,9 @@ class _MainPageState extends State<MainPage> {
                   title: '오늘의 집중도 확인',
                   widget: SizedBox(
                     height: screenHeight * 0.2,
-                    child: ConcentrationPieChart(percentage: 50),
+                    child: Center(
+                      child: ConcentrationPieChart(percentage: 70),
+                    ),
                   ),
                   ratioHeight: 0.5,
                 ),

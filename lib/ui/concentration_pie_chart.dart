@@ -1,56 +1,97 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ConcentrationPieChart extends StatelessWidget {
-  final double percentage; // 집중도를 나타내는 퍼센트 (0 ~ 100)
+  final double percentage;
 
   ConcentrationPieChart({required this.percentage});
 
   @override
   Widget build(BuildContext context) {
-    return PieChart(
-      PieChartData(
-        sections: _generateSections(percentage),
-        startDegreeOffset: 270, // 시작 지점을 위쪽으로 설정
-        centerSpaceRadius: 50, // 가운데 공간 크기
-        sectionsSpace: 0, // 각 조각 간의 간격
-      ),
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 200,
+          height: 200,
+          child: PieChart(
+            PieChartData(
+              sections: _generateSections(percentage),
+              startDegreeOffset: -90, // 시작 각도를 -90도로 변경
+              centerSpaceRadius: 0, // 중앙 공간을 없애고
+              sectionsSpace: 0, // 섹션 간격도 없앰
+              borderData: FlBorderData(show: false),
+            ),
+          ),
+        ),
+        Container(
+          width: 160, // 내부 흰색 원 크기
+          height: 160,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '오늘 사용자의',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: Colors.black54,
+                ),
+              ),
+              Text(
+                '집중도는',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: Colors.black54,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                '${percentage.toStringAsFixed(0)}%',
+                style: GoogleFonts.inter(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple[400],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  /// 퍼센트 기반의 PieChart 섹션을 생성하는 함수
   List<PieChartSectionData> _generateSections(double percentage) {
+    final filledColor = SweepGradient(
+      colors: [
+        Color(0xFFE298C7), // 핑크
+        Color(0xFF9B6B9E), // 퍼플
+      ],
+      stops: [0.0, 1.0],
+      startAngle: 0,
+      endAngle: 3.14 * 2,
+    );
+
     return [
       PieChartSectionData(
-        color: _generateGradient(percentage),
         value: percentage,
-        radius: 60,
-        title: '${percentage.toStringAsFixed(1)}%',
-        titleStyle: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        color: Colors.purple.shade200,
+        radius: 100,
+        title: '',
+        showTitle: false,
+        gradient: filledColor,
       ),
       PieChartSectionData(
-        color: Colors.grey[200], // 비어있는 부분은 회색으로
         value: 100 - percentage,
-        radius: 60,
+        color: Colors.grey.shade200,
+        radius: 100,
         title: '',
+        showTitle: false,
       ),
     ];
-  }
-
-  /// 퍼센트에 따라 그라데이션 색상을 생성하는 함수
-  Color _generateGradient(double percentage) {
-    if (percentage >= 75) {
-      return Colors.green; // 높은 집중도는 녹색
-    } else if (percentage >= 50) {
-      return Colors.blue; // 중간 집중도는 파란색
-    } else if (percentage >= 25) {
-      return Colors.orange; // 낮은 집중도는 주황색
-    } else {
-      return Colors.red; // 매우 낮은 집중도는 빨간색
-    }
   }
 }

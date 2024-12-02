@@ -79,6 +79,15 @@ class _SignupScreenState extends State<SignupScreen> {
                     controller: emailController,
                     decoration: InputDecoration(
                       hintText: '이메일',
+                      labelStyle: GoogleFonts.inter(
+                          color: Colors.grey, fontWeight: FontWeight.w300),
+                      focusColor: Colors.black,
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
                       contentPadding: EdgeInsets.symmetric(
                         vertical: 20.0,
                         horizontal: 15.0,
@@ -103,6 +112,15 @@ class _SignupScreenState extends State<SignupScreen> {
                     controller: nicknameController,
                     decoration: InputDecoration(
                       hintText: '닉네임',
+                      labelStyle: GoogleFonts.inter(
+                          color: Colors.grey, fontWeight: FontWeight.w300),
+                      focusColor: Colors.black,
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
                       contentPadding: EdgeInsets.symmetric(
                         vertical: 20.0,
                         horizontal: 15.0,
@@ -128,6 +146,15 @@ class _SignupScreenState extends State<SignupScreen> {
                     obscureText: true,
                     decoration: InputDecoration(
                       hintText: '비밀번호',
+                      labelStyle: GoogleFonts.inter(
+                          color: Colors.grey, fontWeight: FontWeight.w300),
+                      focusColor: Colors.black,
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
                       contentPadding: EdgeInsets.symmetric(
                         vertical: 20.0,
                         horizontal: 15.0,
@@ -156,6 +183,15 @@ class _SignupScreenState extends State<SignupScreen> {
                     obscureText: true,
                     decoration: InputDecoration(
                       hintText: '비밀번호 확인',
+                      labelStyle: GoogleFonts.inter(
+                          color: Colors.grey, fontWeight: FontWeight.w300),
+                      focusColor: Colors.black,
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
                       contentPadding: EdgeInsets.symmetric(
                         vertical: 20.0,
                         horizontal: 15.0,
