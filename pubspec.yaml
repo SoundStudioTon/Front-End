@@ -43,6 +43,8 @@ flutter:
     - assets/images/kakao_login_icon.png
     - assets/images/left_arrow.png
     - assets/images/right_arrow.png
+    - assets/images/sound_studio_logo.png
+    - assets/images/sound_studio_appbar_logo.png
     - assets/audio/white_noise.mp3
     - assets/audio/pink_noise.mp3
     - assets/audio/green_noise.mp3

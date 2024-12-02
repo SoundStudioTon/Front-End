@@ -1,0 +1,52 @@
+Date : 2024-12-03 01:46:27
+Directory : c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib
+Total : 22 files,  3587 codes, 131 comments, 330 blanks, all 4048 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Dart     |         22 |      3,587 |        131 |        330 |      4,048 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++-----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                | files      | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                   |         22 |      3,587 |        131 |        330 |      4,048 |
+| . (Files)                                                                                           |          1 |         44 |          0 |          4 |         48 |
+| data                                                                                                |          1 |          5 |          0 |          2 |          7 |
+| network                                                                                             |          4 |        468 |         31 |         62 |        561 |
+| pages                                                                                               |          4 |        647 |         14 |         49 |        710 |
+| screens                                                                                             |          6 |      1,818 |         80 |        164 |      2,062 |
+| ui                                                                                                  |          6 |        605 |          6 |         49 |        660 |
++-----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-----------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                                            | language | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\data\concentration_data.dart           | Dart     |          5 |          0 |          2 |          7 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\main.dart                              | Dart     |         44 |          0 |          4 |         48 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\network\concentration_services.dart    | Dart     |         60 |          2 |         11 |         73 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\network\image_services.dart            | Dart     |         94 |         18 |         14 |        126 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\network\noise_services.dart            | Dart     |        135 |          1 |         12 |        148 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\network\user_services.dart             | Dart     |        179 |         10 |         25 |        214 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\pages\graph_page.dart                  | Dart     |        287 |          1 |         25 |        313 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\pages\main_page.dart                   | Dart     |        143 |          3 |          9 |        155 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\pages\notification_page.dart           | Dart     |        104 |          2 |          9 |        115 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\pages\user_page.dart                   | Dart     |        113 |          8 |          6 |        127 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\screens\difficulty_screen.dart         | Dart     |        131 |          2 |          8 |        141 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\screens\login_screen.dart              | Dart     |        179 |          2 |          7 |        188 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\screens\main_screen.dart               | Dart     |        304 |          0 |         29 |        333 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\screens\math_quiz_screen.dart          | Dart     |        675 |         67 |         81 |        823 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\screens\signup_screen.dart             | Dart     |        266 |          2 |          9 |        277 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\screens\study_screen.dart              | Dart     |        263 |          7 |         30 |        300 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\ui\concentration_bar_chart.dart        | Dart     |         82 |          2 |          9 |         93 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\ui\concentration_line_chart.dart       | Dart     |        143 |          2 |         17 |        162 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\ui\concentration_pie_chart.dart        | Dart     |         85 |          0 |          6 |         91 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\ui\content_block.dart                  | Dart     |         51 |          0 |          4 |         55 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\ui\scrollable_concentration_chart.dart | Dart     |        165 |          2 |         11 |        178 |
+| c:\Users\User\Desktop\univ\24-2\CapstoneDesign\Front-End\lib\ui\time_bar_chart.dart                 | Dart     |         79 |          0 |          2 |         81 |
+| Total                                                                                               |          |      3,587 |        131 |        330 |      4,048 |
++-----------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+

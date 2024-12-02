@@ -22,18 +22,16 @@ class LoginScreen extends StatelessWidget {
           return Column(
             children: [
               SizedBox(
-                height: screenHeight * 0.15,
+                height: screenHeight * 0.14,
               ),
               Center(
-                child: Text(
-                  'SOUND STUDIO',
-                  style: GoogleFonts.bebasNeue(
-                    fontSize: 50,
-                  ),
+                child: Image.asset(
+                  'assets/images/sound_studio_appbar_logo.png',
+                  height: screenHeight * 0.2,
                 ),
               ),
               SizedBox(
-                height: screenHeight * 0.1,
+                height: screenHeight * 0.05,
               ),
               Padding(
                 padding: EdgeInsets.only(
