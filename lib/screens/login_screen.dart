@@ -40,6 +40,7 @@ class LoginScreen extends StatelessWidget {
                     left: screenWidth * 0.2, right: screenWidth * 0.2),
                 child: TextFormField(
                   controller: emailController,
+                  cursorColor: Colors.black,
                   decoration: InputDecoration(
                     labelText: '이메일',
                     labelStyle: GoogleFonts.inter(
@@ -66,6 +67,7 @@ class LoginScreen extends StatelessWidget {
                     left: screenWidth * 0.2, right: screenWidth * 0.2),
                 child: TextFormField(
                   controller: passwordController,
+                  cursorColor: Colors.black,
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: '비밀번호',

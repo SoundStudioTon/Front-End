@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:sound_studio/ui/concentration_line_chart.dart';
+import 'package:sound_studio/ui/concentration_pie_chart.dart';
+import 'package:sound_studio/ui/content_block.dart';
 
 class GraphPage extends StatefulWidget {
   const GraphPage({super.key});
@@ -10,6 +14,21 @@ class GraphPage extends StatefulWidget {
 
 class _GraphPageState extends State<GraphPage> {
   DateTime selectedDate = DateTime.now();
+  Map<DateTime, double> concentrationData = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // 샘플 데이터 추가
+    addConcentrationData(DateTime.now(), 85.5);
+    addConcentrationData(DateTime.now().subtract(Duration(days: 1)), 92.0);
+  }
+
+  void addConcentrationData(DateTime date, double value) {
+    setState(() {
+      concentrationData[DateTime(date.year, date.month, date.day)] = value;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +41,35 @@ class _GraphPageState extends State<GraphPage> {
     );
   }
 
-  MonthCalendar() {
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+      locale: const Locale('ko', 'KR'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Colors.black,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
+
+  Widget MonthCalendar() {
     final String year = DateFormat('y').format(selectedDate);
     final String month = DateFormat('M').format(selectedDate);
     return Column(
@@ -38,9 +85,7 @@ class _GraphPageState extends State<GraphPage> {
               ),
               IconButton(
                 icon: Icon(Icons.calendar_today),
-                onPressed: () {
-                  setState(() {});
-                },
+                onPressed: () => _selectDate(context),
               ),
             ],
           ),
@@ -50,7 +95,7 @@ class _GraphPageState extends State<GraphPage> {
     );
   }
 
-  _BuildCalendar() {
+  Widget _BuildCalendar() {
     return Table(
       children: _generateCalendarRows(),
     );
@@ -86,32 +131,28 @@ class _GraphPageState extends State<GraphPage> {
     );
     rows.add(_buildDividerRow());
 
-    // 시작 공백 추가
     for (int i = 0; i < firstDayOfMonth - 1; i++) {
       dayWidgets.add(Container());
     }
 
-    // 날짜 및 이벤트 추가
     for (int day = 1; day <= daysInMonth; day++) {
       DateTime currentDate =
           DateTime(selectedDate.year, selectedDate.month, day);
       dayWidgets.add(_buildDateCell(currentDate));
 
-      // 주가 끝나면 줄바꿈
       if ((dayWidgets.length % 7) == 0) {
         rows.add(TableRow(children: dayWidgets));
-        rows.add(_buildDividerRow()); // 구분선 추가
+        rows.add(_buildDividerRow());
         dayWidgets = [];
       }
     }
 
-    // 남은 공백 추가
     if (dayWidgets.isNotEmpty) {
       while (dayWidgets.length < 7) {
         dayWidgets.add(Container());
       }
       rows.add(TableRow(children: dayWidgets));
-      rows.add(_buildDividerRow()); // 마지막 행 뒤에도 구분선 추가
+      rows.add(_buildDividerRow());
     }
 
     return rows;
@@ -130,13 +171,22 @@ class _GraphPageState extends State<GraphPage> {
   }
 
   Widget _buildDateCell(DateTime date) {
-    bool isSelected = date.isAtSameMomentAs(selectedDate);
+    double? concentration =
+        concentrationData[DateTime(date.year, date.month, date.day)];
 
     return GestureDetector(
       onTap: () {
-        setState(() {
-          selectedDate = date;
-        });
+        if (concentration != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailScreen(
+                date: date,
+                concentration: concentration,
+              ),
+            ),
+          );
+        }
       },
       child: Container(
         height: 110,
@@ -148,12 +198,6 @@ class _GraphPageState extends State<GraphPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              decoration: isSelected
-                  ? BoxDecoration(
-                      color: Colors.black,
-                      shape: BoxShape.circle,
-                    )
-                  : null,
               margin: EdgeInsets.all(4),
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -161,38 +205,108 @@ class _GraphPageState extends State<GraphPage> {
                   date.day.toString(),
                   style: TextStyle(
                     fontSize: 18,
-                    color: isSelected ? Colors.white : Colors.black,
+                    color: Colors.black,
                   ),
                 ),
               ),
             ),
+            if (concentration != null)
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Column(
+                  children: [
+                    Text(
+                      '${concentration.toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    Container(
+                      width: 40,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: _getConcentrationColor(concentration),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEventItem(String title, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
+  Color _getConcentrationColor(double value) {
+    if (value >= 90) return Colors.green;
+    if (value >= 80) return Colors.blue;
+    if (value >= 70) return Colors.orange;
+    return Colors.red;
+  }
+}
+
+class DetailScreen extends StatelessWidget {
+  final DateTime date;
+  final double concentration;
+
+  const DetailScreen({
+    Key? key,
+    required this.date,
+    required this.concentration,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double screenWidth = constraints.maxWidth;
+        double screenHeight = constraints.maxHeight;
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              '${DateFormat('y년 M월 d일').format(date)}',
+              style: GoogleFonts.inter(
+                color: Colors.black,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            backgroundColor: Colors.white,
+            iconTheme: IconThemeData(color: Colors.black),
+            elevation: 0,
+          ),
+          body: SingleChildScrollView(
+            padding: EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                ContentBlock(
+                  screenWidth: MediaQuery.of(context).size.width,
+                  screenHeight: MediaQuery.of(context).size.height,
+                  title: '집중도',
+                  widget: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.3,
+                    child: Center(
+                      child: ConcentrationPieChart(percentage: concentration),
+                    ),
+                  ),
+                  ratioHeight: 0.3,
+                ),
+                SizedBox(
+                  height: screenHeight * 0.02,
+                ),
+                ContentBlock(
+                    screenWidth: screenWidth,
+                    screenHeight: screenHeight,
+                    title: '학습 그래프',
+                    widget: ConcentrationLineChart(data: generateSampleData()),
+                    ratioHeight: 0.4),
+              ],
             ),
           ),
-          SizedBox(width: 10),
-          Text(
-            title,
-            style: TextStyle(
-                fontSize: 16, color: color, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

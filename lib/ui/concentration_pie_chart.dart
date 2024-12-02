@@ -36,14 +36,7 @@ class ConcentrationPieChart extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '오늘 사용자의',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: Colors.black54,
-                ),
-              ),
-              Text(
-                '집중도는',
+                '사용자의 집중도는',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: Colors.black54,
@@ -55,7 +48,7 @@ class ConcentrationPieChart extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.purple[400],
+                  color: Colors.pink[200],
                 ),
               ),
             ],
@@ -68,8 +61,8 @@ class ConcentrationPieChart extends StatelessWidget {
   List<PieChartSectionData> _generateSections(double percentage) {
     final filledColor = SweepGradient(
       colors: [
-        Color(0xFFE298C7), // 핑크
-        Color(0xFF9B6B9E), // 퍼플
+        const Color.fromRGBO(248, 187, 208, 1), // 핑크
+        const Color.fromRGBO(244, 143, 177, 1),
       ],
       stops: [0.0, 1.0],
       startAngle: 0,

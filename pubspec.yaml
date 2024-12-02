@@ -17,6 +17,8 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_image_compress: ^2.3.0
+  flutter_localizations:
+    sdk: flutter
   flutter_secure_storage: ^9.2.2
   fluttertoast: ^8.2.8
   google_fonts: ^6.2.1

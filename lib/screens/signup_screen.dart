@@ -77,6 +77,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   SizedBox(height: screenHeight * 0.06), // 간격 조정
                   TextFormField(
                     controller: emailController,
+                    cursorColor: Colors.black,
                     decoration: InputDecoration(
                       hintText: '이메일',
                       labelStyle: GoogleFonts.inter(
@@ -110,6 +111,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   SizedBox(height: screenHeight * 0.03),
                   TextFormField(
                     controller: nicknameController,
+                    cursorColor: Colors.black,
                     decoration: InputDecoration(
                       hintText: '닉네임',
                       labelStyle: GoogleFonts.inter(
@@ -143,6 +145,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   SizedBox(height: screenHeight * 0.03),
                   TextFormField(
                     controller: passwordController,
+                    cursorColor: Colors.black,
                     obscureText: true,
                     decoration: InputDecoration(
                       hintText: '비밀번호',
@@ -180,6 +183,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   SizedBox(height: screenHeight * 0.03),
                   TextFormField(
                     controller: passwordCheckController,
+                    cursorColor: Colors.black,
                     obscureText: true,
                     decoration: InputDecoration(
                       hintText: '비밀번호 확인',

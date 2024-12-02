@@ -76,7 +76,9 @@ class _MainScreenState extends State<MainScreen> {
       valueListenable: pageIndex,
       builder: (context, value, child) {
         return Scaffold(
-          backgroundColor: hasTakenTest ? Colors.white : Colors.grey,
+          backgroundColor: hasTakenTest
+              ? const Color.fromRGBO(249, 249, 249, 0)
+              : Colors.grey,
           appBar: isLoading
               ? null
               : hasTakenTest
@@ -106,7 +108,7 @@ class _MainScreenState extends State<MainScreen> {
   _customAppBar() {
     return AppBar(
       scrolledUnderElevation: 0,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color.fromRGBO(249, 249, 249, 0),
       leading: Padding(
         padding: EdgeInsets.all(10),
         child: Center(
