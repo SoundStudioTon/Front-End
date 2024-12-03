@@ -44,7 +44,7 @@ class UserPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '○○○님',
+                                '사용자님',
                                 style: TextStyle(
                                     fontSize: 18, fontWeight: FontWeight.bold),
                               ),
@@ -54,10 +54,6 @@ class UserPage extends StatelessWidget {
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                               SizedBox(height: 2),
-                              Text(
-                                '010-1234-1234',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
                             ],
                           ),
                         ],

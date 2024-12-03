@@ -92,21 +92,15 @@ class NotificationItem {
 // 더미 데이터
 final List<NotificationItem> dummyNotifications = [
   NotificationItem(
-    title: '소음 측정 완료',
-    message: '오늘의 소음 측정이 완료되었습니다.',
-    time: '방금 전',
-    icon: Icons.notifications,
-  ),
-  NotificationItem(
-    title: '일일 리포트',
-    message: '어제의 소음 분석 리포트가 준비되었습니다.',
+    title: '소음 변형',
+    message: '집중도가 떨어져 소음을 변형합니다',
     time: '2시간 전',
-    icon: Icons.assessment,
+    icon: Icons.change_circle,
     isRead: true,
   ),
   NotificationItem(
     title: '주간 분석',
-    message: '이번 주 소음 분석 결과를 확인해보세요.',
+    message: '이번 주의 집중도를 확인하세요',
     time: '1일 전',
     icon: Icons.analytics,
     isRead: true,

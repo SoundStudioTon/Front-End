@@ -201,13 +201,12 @@ Future<int?> getUserId() async {
 
     // null 체크 후 int로 변환
     if (userIdString != null) {
-      return int.parse(userIdString); // int로 변환
+      int parsedId = int.parse(userIdString);
+      return parsedId;
     } else {
-      return null; // userId가 없을 경우 null 반환
+      return null;
     }
   } catch (e) {
-    // 변환 중 에러 처리
-    print('userId 변환 에러: $e');
     return null;
   }
 }

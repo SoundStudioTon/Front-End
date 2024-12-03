@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:sound_studio/screens/difficulty_screen.dart';
 import 'package:sound_studio/screens/login_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:sound_studio/screens/math_quiz_screen.dart';
+import 'package:sound_studio/screens/study_result_screen.dart';
 
 void main() {
   runApp(const MainApp());
@@ -13,6 +15,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

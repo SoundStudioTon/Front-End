@@ -9,10 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path/path.dart' as path;
-import 'package:audioplayers/audioplayers.dart'; // 오디오 플레이어 패키지 추가
+import 'package:audioplayers/audioplayers.dart';
 import 'package:sound_studio/network/image_services.dart';
 import 'package:sound_studio/network/noise_services.dart';
 import 'package:sound_studio/network/user_services.dart';
+import 'package:sound_studio/screens/study_result_screen.dart';
 
 class StudyScreen extends StatefulWidget {
   @override
@@ -25,11 +26,12 @@ class _StudyScreenState extends State<StudyScreen> {
   bool isRearCameraSelected = false;
   Timer? _timer;
   bool isStudying = false;
+  bool isPaused = false;
   bool isUploading = false;
-  final ImageApi _imageApi = ImageApi(
-      baseUrl: 'http://sound-studio.kro.kr:8080'); // 실제 서버의 Base URL로 변경
-
+  final ImageApi _imageApi =
+      ImageApi(baseUrl: 'http://sound-studio.kro.kr:8080');
   String? _latestAiResponse;
+  int _seconds = 0; // 타이머를 위한 변수 추가
 
   final Map<String, int> audioAssetToNumber = {
     "audio/pink_noise.mp3": 1,
@@ -37,14 +39,21 @@ class _StudyScreenState extends State<StudyScreen> {
     "audio/white_noise.mp3": 3,
   };
 
-  AudioPlayer? _audioPlayer; // 오디오 플레이어 객체 추가
+  AudioPlayer? _audioPlayer;
+
+  String formatTime() {
+    int hours = _seconds ~/ 3600;
+    int minutes = (_seconds % 3600) ~/ 60;
+    int seconds = _seconds % 60;
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
 
   @override
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     initCamera();
-    _audioPlayer = AudioPlayer(); // 오디오 플레이어 초기화
+    _audioPlayer = AudioPlayer();
   }
 
   Future<void> initCamera() async {
@@ -78,131 +87,197 @@ class _StudyScreenState extends State<StudyScreen> {
     initCamera();
   }
 
+  void handleStudyTimer(Timer timer) async {
+    if (!mounted) return; // mounted 체크 추가
+
+    if (!isPaused) {
+      // 일시정지가 아닐 때만 시간 증가
+      setState(() {
+        _seconds++;
+      });
+    }
+
+    if (isUploading) return;
+    setState(() {
+      isUploading = true;
+    });
+
+    try {
+      final XFile imageFile = await _cameraController!.takePicture();
+      File file = File(imageFile.path);
+
+      Uint8List? compressedBytes = await FlutterImageCompress.compressWithFile(
+        file.absolute.path,
+        quality: 60,
+        minWidth: 800,
+        minHeight: 600,
+      );
+
+      if (compressedBytes == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('이미지 압축에 실패했습니다.')),
+        );
+        setState(() {
+          isUploading = false;
+        });
+        return;
+      }
+
+      String fileName = path.basename(file.path);
+
+      int? userId = await getUserId();
+      if (userId != null) {
+        String aiResponse =
+            await _imageApi.uploadImage(userId, compressedBytes, fileName);
+        setState(() {
+          _latestAiResponse = aiResponse;
+        });
+      }
+    } catch (e) {
+      // 에러 처리
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('에러 발생: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        // mounted 체크 추가
+        setState(() {
+          isUploading = false;
+        });
+      }
+    }
+  }
+
   void startStudying() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      print('카메라가 초기화되지 않았습니다.');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('카메라가 초기화되지 않았습니다.')),
       );
       return;
     }
 
-    if (isStudying) {
-      _timer?.cancel();
-      _audioPlayer?.stop(); // 오디오 재생 중지
-      setState(() {
-        isStudying = false;
-      });
-    } else {
-      // AccessToken 가져오기
-      String? accessToken = await AuthService.storage.read(key: 'accessToken');
-      if (accessToken == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('로그인이 필요합니다.')),
-        );
-        return;
+    String? accessToken = await AuthService.storage.read(key: 'accessToken');
+    if (accessToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('로그인이 필요합니다.')),
+      );
+      return;
+    }
+
+    int noiseNumber = await getNoiseNumber(accessToken);
+    if (noiseNumber == -1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('소음 데이터를 가져오지 못했습니다.')),
+      );
+      return;
+    }
+
+    String? audioAsset;
+    audioAssetToNumber.forEach((key, value) {
+      if (value == noiseNumber) {
+        audioAsset = key;
       }
+    });
 
-      // 소음 번호 가져오기
-      int noiseNumber = await getNoiseNumber(accessToken);
+    if (audioAsset == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('해당하는 소음 데이터가 없습니다.')),
+      );
+      return;
+    }
 
-      if (noiseNumber == -1) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('소음 데이터를 가져오지 못했습니다.')),
-        );
-        return;
-      }
+    _audioPlayer?.setReleaseMode(ReleaseMode.loop);
 
-      // 소음 번호를 오디오 파일로 매핑
-      String? audioAsset;
-      audioAssetToNumber.forEach((key, value) {
-        if (value == noiseNumber) {
-          audioAsset = key;
-        }
-      });
-
-      if (audioAsset == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('해당하는 소음 데이터가 없습니다.')),
-        );
-        return;
-      }
-
-      // 오디오 반복 재생 설정
-      _audioPlayer?.setReleaseMode(ReleaseMode.loop);
-
-      try {
-        // 오디오 재생
-        print(audioAsset);
-        await _audioPlayer?.play(AssetSource(audioAsset!));
-      } catch (e) {
-        print(e);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오디오를 재생할 수 없습니다: $e')),
-        );
-        return;
-      }
-
-      _timer = Timer.periodic(Duration(seconds: 1), (Timer timer) async {
-        if (isUploading) return;
-        setState(() {
-          isUploading = true;
-        });
-
-        try {
-          final XFile imageFile = await _cameraController!.takePicture();
-          File file = File(imageFile.path);
-
-          // 이미지 압축 추가
-          Uint8List? compressedBytes =
-              await FlutterImageCompress.compressWithFile(
-            file.absolute.path,
-            quality: 60,
-            minWidth: 800,
-            minHeight: 600,
-          );
-
-          if (compressedBytes == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('이미지 압축에 실패했습니다.')),
-            );
-            setState(() {
-              isUploading = false;
-            });
-            return;
-          }
-
-          String fileName = path.basename(file.path);
-
-          int? userId = await getUserId();
-          if (userId != null) {
-            String aiResponse =
-                await _imageApi.uploadImage(userId, compressedBytes, fileName);
-            setState(() {
-              _latestAiResponse = aiResponse;
-            });
-          }
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('에러 발생: $e')),
-          );
-        } finally {
-          setState(() {
-            isUploading = false;
-          });
-        }
-      });
+    try {
+      await _audioPlayer?.play(AssetSource(audioAsset!));
+      _timer = Timer.periodic(Duration(seconds: 1), handleStudyTimer);
 
       setState(() {
         isStudying = true;
+        isPaused = false;
       });
+    } catch (e) {
+      print(e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('오디오를 재생할 수 없습니다: $e')),
+      );
+    }
+  }
+
+  void stopStudying() {
+    // 타이머와 오디오 정지
+    _timer?.cancel();
+    _audioPlayer?.stop();
+
+    // mounted 체크 추가
+    if (!mounted) return;
+
+    // 화면 이동 전에 isStudying 상태 변경
+    setState(() {
+      isStudying = false;
+    });
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudyResultScreen(
+            // 필요한 다른 결과 데이터들 전달
+            ),
+      ),
+    );
+  }
+
+  String _getEmoji(String response) {
+    switch (response) {
+      case "집중함":
+        return "😊"; // 집중하는 표정
+      case "집중하지 않음":
+        return "😑"; // 집중하지 않는 표정
+      case "졸음":
+        return "😴"; // 졸린 표정
+      case "0":
+        return "❓"; // 얼굴 인식 실패
+      default:
+        return "❓";
+    }
+  }
+
+  Color _getBackgroundColor(String response) {
+    switch (response) {
+      case "집중함":
+        return Colors.green.withOpacity(0.2);
+      case "집중하지 않음":
+        return Colors.orange.withOpacity(0.2);
+      case "졸음":
+        return Colors.red.withOpacity(0.2);
+      case "0":
+        return Colors.grey.withOpacity(0.2);
+      default:
+        return Colors.grey.withOpacity(0.2);
+    }
+  }
+
+  String _getMessage(String response) {
+    switch (response) {
+      case "집중함":
+        return "집중하고 있어요!";
+      case "집중하지 않음":
+        return "집중이 필요해요";
+      case "졸음":
+        return "졸음이 와요";
+      case "0":
+        return "얼굴이 인식되지 않았어요";
+      default:
+        return response;
     }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _audioPlayer?.dispose(); // 오디오 플레이어 해제
+    _audioPlayer?.dispose();
     _cameraController?.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -218,76 +293,183 @@ class _StudyScreenState extends State<StudyScreen> {
 
           return Column(
             children: [
-              Container(
-                width: screenWidth,
-                height: screenWidth * (4 / 3), // 3:4 비율로 설정
-                color: Colors.black,
-                child: _cameraController != null &&
-                        _cameraController!.value.isInitialized
-                    ? Transform(
-                        alignment: Alignment.center,
-                        transform: Matrix4.identity()
-                          ..scale(-1.0, 1.0), // 좌우 반전
-                        child: AspectRatio(
-                          aspectRatio: 3 / 4, // 3:4 비율로 설정
-                          child: CameraPreview(_cameraController!),
-                        ),
-                      )
-                    : Center(child: CircularProgressIndicator()),
-              ),
-              SizedBox(height: screenHeight * 0.03),
-              isStudying
-                  ? Container(
-                      padding: EdgeInsets.all(screenWidth * 0.05),
-                      height: 100,
-                      child: Column(
-                        children: [
-                          ElevatedButton(
-                            onPressed: startStudying,
-                            child: Text(
-                              '학습 중지하기',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
+              Stack(
+                children: [
+                  Container(
+                    width: screenWidth,
+                    height: screenWidth * (4 / 3),
+                    color: Colors.black,
+                    child: _cameraController != null &&
+                            _cameraController!.value.isInitialized
+                        ? Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()..scale(-1.0, 1.0),
+                            child: AspectRatio(
+                              aspectRatio: 3 / 4,
+                              child: CameraPreview(_cameraController!),
                             ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent,
-                              minimumSize: Size(150, 50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                            ),
-                          ),
-                        ],
+                          )
+                        : Center(child: CircularProgressIndicator()),
+                  ),
+                  Positioned(
+                    top: 40,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
                       ),
-                    )
-                  : ElevatedButton(
-                      onPressed: startStudying,
-                      child: Text(
-                        '학습 시작하기',
-                        style: TextStyle(
+                      child: Center(
+                        child: Text(
+                          formatTime(),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 36,
                             fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black54,
-                        minimumSize: Size(screenWidth * 0.61, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(3.0),
+                            shadows: [
+                              Shadow(
+                                offset: Offset(1.0, 1.0),
+                                blurRadius: 3.0,
+                                color: Colors.black.withOpacity(0.5),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
+                  ),
+                ],
+              ),
+              SizedBox(height: screenHeight * 0.03),
+              if (isStudying)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            isPaused = !isPaused;
+                            if (isPaused) {
+                              _audioPlayer?.pause();
+                            } else {
+                              _audioPlayer?.resume();
+                            }
+                          });
+                        },
+                        child: Text(
+                          isPaused ? '재개하기' : '일시정지',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              isPaused ? Colors.green : Colors.orange,
+                          minimumSize: Size(120, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: stopStudying,
+                        child: Text(
+                          '학습 중단하기',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          minimumSize: Size(120, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ElevatedButton(
+                  onPressed: startStudying,
+                  child: Text(
+                    '학습 시작하기',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black54,
+                    minimumSize: Size(screenWidth * 0.61, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(3.0),
+                    ),
+                  ),
+                ),
               SizedBox(height: screenHeight * 0.01),
               Expanded(
-                child: _latestAiResponse != null
-                    ? ListTile(
-                        leading: Icon(Icons.check_circle, color: Colors.green),
-                        title: Text(_latestAiResponse!),
-                      )
-                    : Center(child: Text('AI 응답이 없습니다.')),
+                child: isStudying
+                    ? (_latestAiResponse != null
+                        ? Center(
+                            child: ListTile(
+                              contentPadding:
+                                  EdgeInsets.symmetric(horizontal: 16),
+                              horizontalTitleGap: 2,
+                              title: Container(
+                                width: 40,
+                                height: 80,
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        _getEmoji(_latestAiResponse!),
+                                        style: TextStyle(fontSize: 24),
+                                      ),
+                                      Text(
+                                        _getMessage(_latestAiResponse!),
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : Center(child: Text('AI 응답이 없습니다.')))
+                    : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.face,
+                              size: 50,
+                              color: Colors.blue,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              "얼굴이 잘 보이게 카메라를 위치시켜주세요!",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
               ),
               SizedBox(height: screenHeight * 0.01),
             ],

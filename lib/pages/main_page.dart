@@ -22,7 +22,7 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromRGBO(249, 249, 249, 0),
+      backgroundColor: Colors.white,
       body: LayoutBuilder(
         builder: (context, constraints) {
           double screenWidth = constraints.maxWidth;
@@ -43,7 +43,7 @@ class _MainPageState extends State<MainPage> {
                   widget: SizedBox(
                     height: screenHeight * 0.3 < 250 ? 250 : screenHeight * 0.3,
                     child: Center(
-                      child: ConcentrationPieChart(percentage: 100),
+                      child: ConcentrationPieChart(percentage: 84),
                     ),
                   ),
                   ratioHeight: 0.45,
@@ -55,11 +55,11 @@ class _MainPageState extends State<MainPage> {
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                   ratioHeight: 0.50,
-                  title: '집중도 그래프',
+                  title: '시간대별 집중도 그래프',
                   widget: SizedBox(
-                    height: screenHeight * 0.2 < 260
+                    height: screenHeight * 0.4 < 260
                         ? 260
-                        : screenHeight * 0.2, // 고정된 높이
+                        : screenHeight * 0.4, // 고정된 높이
                     child: ScrollableConcentrationChart(data: [
                       ConcentrationData(hour: 0, concentrationRate: 0), // 자는 시간
                       ConcentrationData(hour: 1, concentrationRate: 0),
@@ -83,12 +83,12 @@ class _MainPageState extends State<MainPage> {
                       ConcentrationData(
                           hour: 12, concentrationRate: 0), // 점심 시간
                       ConcentrationData(hour: 13, concentrationRate: 0), // 졸음시간
-                      ConcentrationData(hour: 14, concentrationRate: 80),
+                      ConcentrationData(hour: 14, concentrationRate: 0),
                       ConcentrationData(
-                          hour: 15, concentrationRate: 90), // 오후 업무
-                      ConcentrationData(hour: 16, concentrationRate: 75),
+                          hour: 15, concentrationRate: 0), // 오후 업무
+                      ConcentrationData(hour: 16, concentrationRate: 0),
                       ConcentrationData(
-                          hour: 17, concentrationRate: 70), // 퇴근 시간
+                          hour: 17, concentrationRate: 0), // 퇴근 시간
 
                       // 저녁 시간대 (18-23시): 점진적 감소
                       ConcentrationData(
@@ -112,11 +112,10 @@ class _MainPageState extends State<MainPage> {
                     title: '총 학습 시간',
                     widget: Center(
                       child: Text(
-                        '7시간 30분',
-                        style: GoogleFonts.inter(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: screenWidth * 0.04),
+                        '3시간 12분',
+                        style: GoogleFonts.doHyeon(
+                          fontSize: screenWidth * 0.1,
+                        ),
                       ),
                     ),
                     ratioHeight: 0.4),

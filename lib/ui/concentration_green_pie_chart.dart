@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ConcentrationPieChart extends StatelessWidget {
+class ConcentrationGreenPieChart extends StatelessWidget {
   final double percentage;
 
-  ConcentrationPieChart({required this.percentage});
+  ConcentrationGreenPieChart({required this.percentage});
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +48,7 @@ class ConcentrationPieChart extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.pink[200],
+                  color: Colors.cyan[200],
                 ),
               ),
             ],
@@ -61,8 +61,8 @@ class ConcentrationPieChart extends StatelessWidget {
   List<PieChartSectionData> _generateSections(double percentage) {
     final filledColor = SweepGradient(
       colors: [
-        const Color.fromRGBO(248, 187, 208, 1), // 핑크
-        const Color.fromRGBO(244, 143, 177, 1),
+        const Color.fromRGBO(200, 230, 201, 1),
+        const Color.fromRGBO(129, 199, 132, 1),
       ],
       stops: [0.0, 1.0],
       startAngle: 0,

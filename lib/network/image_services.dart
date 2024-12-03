@@ -85,7 +85,9 @@ class ImageApi {
 
       if (response.statusCode == 200) {
         // AI 서버의 응답을 그대로 반환
-        String aiResult = response.data["transformedPrediction"];
+        Map<String, dynamic> jsonResponse = jsonDecode(response.data);
+        String aiResult = jsonResponse['transformedPrediction'];
+        print('aiResult = $aiResult');
         return aiResult;
       } else {
         throw Exception('이미지 업로드 실패: ${response.statusCode}');

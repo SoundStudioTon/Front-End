@@ -2,18 +2,18 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:sound_studio/data/concentration_data.dart';
 
-class ScrollableConcentrationChart extends StatefulWidget {
+class ScrollableGreenConcentrationChart extends StatefulWidget {
   final List<ConcentrationData> data;
 
-  ScrollableConcentrationChart({required this.data});
+  ScrollableGreenConcentrationChart({required this.data});
 
   @override
-  State<ScrollableConcentrationChart> createState() =>
-      _ScrollableConcentrationChartState();
+  State<ScrollableGreenConcentrationChart> createState() =>
+      _ScrollableGreenConcentrationChartState();
 }
 
-class _ScrollableConcentrationChartState
-    extends State<ScrollableConcentrationChart> {
+class _ScrollableGreenConcentrationChartState
+    extends State<ScrollableGreenConcentrationChart> {
   late ScrollController _scrollController;
   final double _visibleHours = 8;
 
@@ -21,14 +21,6 @@ class _ScrollableConcentrationChartState
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final now = DateTime.now();
-      final currentHour = now.hour.toDouble();
-      final scrollPosition = (currentHour - _visibleHours / 2) * 60.0;
-      if (scrollPosition > 0) {
-        _scrollController.jumpTo(scrollPosition);
-      }
-    });
   }
 
   @override
@@ -39,9 +31,6 @@ class _ScrollableConcentrationChartState
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final currentHour = now.hour;
-
     return Column(
       children: [
         Expanded(
@@ -55,22 +44,18 @@ class _ScrollableConcentrationChartState
                 BarChartData(
                   barGroups: widget.data.map((d) {
                     final opacity = 0.3 + (d.concentrationRate / 100 * 0.7);
-                    final isCurrentHour = d.hour == currentHour;
 
                     return BarChartGroupData(
                       x: d.hour.toInt(),
                       barRods: [
                         BarChartRodData(
                           toY: d.concentrationRate,
-                          color: isCurrentHour
-                              ? Colors.pink[200]
-                              : const Color.fromRGBO(244, 143, 177, 1)
-                                  .withOpacity(opacity),
+                          color: Color.fromRGBO(76, 175, 80, 1)
+                              .withOpacity(opacity), // 초록색으로 변경
                           width: 40,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ],
-                      // 0%가 아닐 때만 툴팁 표시
                       showingTooltipIndicators:
                           d.concentrationRate > 0 ? [0] : [],
                     );
@@ -87,12 +72,8 @@ class _ScrollableConcentrationChartState
                             child: Text(
                               '${value.toInt()}시',
                               style: TextStyle(
-                                color: value.toInt() == currentHour
-                                    ? Colors.pink[200]
-                                    : Colors.black,
-                                fontWeight: value.toInt() == currentHour
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
+                                color: Colors.black,
+                                fontWeight: FontWeight.normal,
                                 fontSize: 12,
                               ),
                             ),
@@ -150,7 +131,6 @@ class _ScrollableConcentrationChartState
                     handleBuiltInTouches: true,
                     touchTooltipData: BarTouchTooltipData(
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        // 0%일 경우 null 반환하여 툴팁 숨김
                         if (rod.toY == 0) return null;
 
                         return BarTooltipItem(

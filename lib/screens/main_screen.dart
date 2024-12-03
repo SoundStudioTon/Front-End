@@ -76,9 +76,7 @@ class _MainScreenState extends State<MainScreen> {
       valueListenable: pageIndex,
       builder: (context, value, child) {
         return Scaffold(
-          backgroundColor: hasTakenTest
-              ? const Color.fromRGBO(249, 249, 249, 0)
-              : Colors.grey,
+          backgroundColor: hasTakenTest ? Colors.white : Colors.grey,
           appBar: isLoading
               ? null
               : hasTakenTest
@@ -108,7 +106,7 @@ class _MainScreenState extends State<MainScreen> {
   _customAppBar() {
     return AppBar(
       scrolledUnderElevation: 0,
-      backgroundColor: const Color.fromRGBO(249, 249, 249, 0),
+      backgroundColor: Colors.white,
       leading: Padding(
         padding: EdgeInsets.all(10),
         child: Center(
@@ -248,7 +246,7 @@ class __BottomNavigationBarState extends State<_BottomNavigationBar> {
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
     return Card(
-      color: (brightness == Brightness.light) ? Colors.transparent : null,
+      color: (brightness == Brightness.light) ? Colors.white : null,
       elevation: 0,
       margin: EdgeInsets.all(0),
       child: SafeArea(

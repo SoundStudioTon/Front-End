@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:sound_studio/ui/concentration_line_chart.dart';
+import 'package:sound_studio/data/concentration_data.dart';
+import 'package:sound_studio/ui/concentration_green_bar_chart.dart';
+import 'package:sound_studio/ui/concentration_green_pie_chart.dart';
 import 'package:sound_studio/ui/concentration_pie_chart.dart';
 import 'package:sound_studio/ui/content_block.dart';
 
@@ -20,8 +22,16 @@ class _GraphPageState extends State<GraphPage> {
   void initState() {
     super.initState();
     // 샘플 데이터 추가
-    addConcentrationData(DateTime.now(), 85.5);
-    addConcentrationData(DateTime.now().subtract(Duration(days: 1)), 92.0);
+    addConcentrationData(DateTime.now(), 86);
+    addConcentrationData(DateTime.now().subtract(Duration(days: 10)), 81);
+    addConcentrationData(DateTime.now().subtract(Duration(days: 9)), 80);
+    addConcentrationData(DateTime.now().subtract(Duration(days: 8)), 85);
+    addConcentrationData(DateTime.now().subtract(Duration(days: 7)), 87);
+    addConcentrationData(DateTime.now().subtract(Duration(days: 6)), 91);
+    addConcentrationData(DateTime.now().subtract(Duration(days: 5)), 92);
+    addConcentrationData(DateTime.now().subtract(Duration(days: 4)), 94);
+    addConcentrationData(DateTime.now().subtract(Duration(days: 3)), 91);
+    addConcentrationData(DateTime.now().subtract(Duration(days: 1)), 93);
   }
 
   void addConcentrationData(DateTime date, double value) {
@@ -216,7 +226,7 @@ class _GraphPageState extends State<GraphPage> {
                 child: Column(
                   children: [
                     Text(
-                      '${concentration.toStringAsFixed(1)}%',
+                      '${concentration.toStringAsFixed(0)}%',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[800],
@@ -267,13 +277,14 @@ class DetailScreen extends StatelessWidget {
           appBar: AppBar(
             title: Text(
               '${DateFormat('y년 M월 d일').format(date)}',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.jua(
                 color: Colors.black,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
             backgroundColor: Colors.white,
+            scrolledUnderElevation: 0,
             iconTheme: IconThemeData(color: Colors.black),
             elevation: 0,
           ),
@@ -288,7 +299,9 @@ class DetailScreen extends StatelessWidget {
                   widget: SizedBox(
                     height: MediaQuery.of(context).size.height * 0.3,
                     child: Center(
-                      child: ConcentrationPieChart(percentage: concentration),
+                      child: ConcentrationGreenPieChart(
+                        percentage: concentration,
+                      ),
                     ),
                   ),
                   ratioHeight: 0.3,
@@ -299,9 +312,48 @@ class DetailScreen extends StatelessWidget {
                 ContentBlock(
                     screenWidth: screenWidth,
                     screenHeight: screenHeight,
-                    title: '학습 그래프',
-                    widget: ConcentrationLineChart(data: generateSampleData()),
-                    ratioHeight: 0.4),
+                    title: '시간대별 집중도 그래프',
+                    widget: ScrollableGreenConcentrationChart(data: [
+                      ConcentrationData(hour: 0, concentrationRate: 0), // 자는 시간
+                      ConcentrationData(hour: 1, concentrationRate: 0),
+                      ConcentrationData(hour: 2, concentrationRate: 0),
+                      ConcentrationData(hour: 3, concentrationRate: 0),
+                      ConcentrationData(hour: 4, concentrationRate: 0),
+                      ConcentrationData(hour: 5, concentrationRate: 0), // 기상 시작
+                      // 아침 시간대 (6-11시): 집중도 상승
+                      ConcentrationData(hour: 6, concentrationRate: 0), // 아침 활동
+                      ConcentrationData(hour: 7, concentrationRate: 0),
+                      ConcentrationData(
+                          hour: 8, concentrationRate: 89), // 업무/학습 시작
+                      ConcentrationData(
+                          hour: 9, concentrationRate: 90), // 오전 피크
+                      ConcentrationData(hour: 10, concentrationRate: 93),
+                      ConcentrationData(
+                          hour: 11, concentrationRate: 94), // 점심 전
+
+                      // 오후 시간대 (12-17시): 변동있는 집중도
+                      ConcentrationData(
+                          hour: 12, concentrationRate: 90), // 점심 시간
+                      ConcentrationData(hour: 13, concentrationRate: 0), // 졸음시간
+                      ConcentrationData(hour: 14, concentrationRate: 0),
+                      ConcentrationData(
+                          hour: 15, concentrationRate: 0), // 오후 업무
+                      ConcentrationData(hour: 16, concentrationRate: 0),
+                      ConcentrationData(
+                          hour: 17, concentrationRate: 0), // 퇴근 시간
+
+                      // 저녁 시간대 (18-23시): 점진적 감소
+                      ConcentrationData(
+                          hour: 18, concentrationRate: 0), // 저녁 활동
+                      ConcentrationData(hour: 19, concentrationRate: 0),
+                      ConcentrationData(hour: 20, concentrationRate: 0),
+                      ConcentrationData(hour: 21, concentrationRate: 0), // 휴식
+                      ConcentrationData(
+                          hour: 22, concentrationRate: 0), // 취침 준비
+                      ConcentrationData(
+                          hour: 23, concentrationRate: 0), // 취침 시간
+                    ]),
+                    ratioHeight: 0.5),
               ],
             ),
           ),

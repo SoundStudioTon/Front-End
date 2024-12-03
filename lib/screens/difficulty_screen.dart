@@ -48,18 +48,18 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
                   height: screenHeight * 0.12,
                 ),
                 Text('난이도 설정',
-                    style: GoogleFonts.bebasNeue(
+                    style: GoogleFonts.jua(
                       color: Color.fromARGB(180, 0, 0, 0),
                       fontSize: 50,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w400,
                     )),
                 SizedBox(height: screenHeight * 0.04),
                 Text(
                   '$difficulty',
-                  style: TextStyle(
-                    fontSize: fontSizeNumber, // 가변 숫자 크기
+                  style: GoogleFonts.nanumPenScript(
+                    fontSize: fontSizeNumber * 1.5, // 가변 숫자 크기
                     color: Color.fromARGB(180, 0, 0, 0),
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
                 SizedBox(height: screenHeight * 0.04),
@@ -71,7 +71,7 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
                       onTap: _decreaseDifficulty,
                       child: Image.asset(
                         'assets/images/left_arrow.png',
-                        height: screenHeight * 0.12,
+                        height: screenHeight * 0.11,
                         width: screenHeight * 0.095,
                         fit: BoxFit.fill,
                       ),
@@ -83,7 +83,7 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
                       onTap: _increaseDifficulty,
                       child: Image.asset(
                         'assets/images/right_arrow.png',
-                        height: screenHeight * 0.12,
+                        height: screenHeight * 0.11,
                         width: screenHeight * 0.095,
                         fit: BoxFit.fill,
                       ),
@@ -104,7 +104,7 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
                   child: Padding(
                     child: Text(
                       '테스트 시작하기',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.jua(
                         fontSize: screenWidth * 0.04,
                         color: Colors.white,
                       ),
@@ -117,6 +117,7 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black54,
+                    padding: EdgeInsets.all(screenWidth * 0.02),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(5)),
                   ),
@@ -125,7 +126,7 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
                 Padding(
                   padding: EdgeInsets.all(padding), // 가변 패딩
                   child: Text(
-                    '소음 테스트를 진행합니다. 난이도의 숫자는 숫자의 자릿 수를 의미합니다. ',
+                    '소음 테스트를 진행합니다. 난이도의 숫자는 숫자의 자릿 수를 의미합니다.',
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),

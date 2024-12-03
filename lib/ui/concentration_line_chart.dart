@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ConcentrationLineChart extends StatelessWidget {
-  final List<ConcentrationData> data;
+  final List<ConcentrationMData> data;
   final ScrollController scrollController = ScrollController();
 
   ConcentrationLineChart({Key? key, required this.data}) : super(key: key);
@@ -22,7 +22,7 @@ class ConcentrationLineChart extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      height: 300,
+      height: 350,
       child: SingleChildScrollView(
         controller: scrollController,
         scrollDirection: Axis.horizontal,
@@ -66,7 +66,11 @@ class ConcentrationLineChart extends StatelessWidget {
                     interval: 20,
                     reservedSize: 40,
                     getTitlesWidget: (value, meta) {
-                      return Text('${value.toInt()}%');
+                      if (value.toInt() < 110) {
+                        return Text('${value.toInt()}');
+                      } else {
+                        return Text('');
+                      }
                     },
                   ),
                 ),
@@ -75,7 +79,7 @@ class ConcentrationLineChart extends StatelessWidget {
               minX: 0,
               maxX: data.length.toDouble(),
               minY: 0,
-              maxY: 100,
+              maxY: 120,
               lineBarsData: [
                 LineChartBarData(
                   spots: data
@@ -103,19 +107,19 @@ class ConcentrationLineChart extends StatelessWidget {
   }
 }
 
-class ConcentrationData {
+class ConcentrationMData {
   final int minute;
   final double concentrationRate;
 
-  ConcentrationData({
+  ConcentrationMData({
     required this.minute,
     required this.concentrationRate,
   });
 }
 
 // 예시 데이터 (90분, 1분 간격)
-List<ConcentrationData> generateSampleData() {
-  List<ConcentrationData> data = [];
+List<ConcentrationMData> generateSampleData() {
+  List<ConcentrationMData> data = [];
 
   // 5분 단위의 기준 집중도
   Map<int, int> baseConcentrations = {
@@ -153,7 +157,7 @@ List<ConcentrationData> generateSampleData() {
     int concentration =
         currentBase + ((nextBase - currentBase) * progress).round();
 
-    data.add(ConcentrationData(
+    data.add(ConcentrationMData(
         minute: minute, concentrationRate: concentration.toDouble()));
   }
 

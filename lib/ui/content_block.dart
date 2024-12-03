@@ -29,8 +29,8 @@ class ContentBlock extends StatelessWidget {
           ),
           child: Text(
             title,
-            style: GoogleFonts.bebasNeue(
-              fontSize: screenHeight * 0.02,
+            style: GoogleFonts.jua(
+              fontSize: screenHeight * 0.03,
               fontWeight: FontWeight.bold,
               color: Colors.black54,
             ),
