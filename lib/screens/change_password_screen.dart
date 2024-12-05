@@ -18,89 +18,128 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('비밀번호 변경', style: GoogleFonts.jua(color: Colors.black)),
+        title: Text(
+          '비밀번호 변경',
+          style: GoogleFonts.jua(
+            color: Colors.black,
+            fontSize: 24,
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.black),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _currentPasswordController,
-                obscureText: _isObscure,
-                decoration: InputDecoration(
-                  labelText: '현재 비밀번호',
-                  border: OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                        _isObscure ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () {
-                      setState(() {
-                        _isObscure = !_isObscure;
-                      });
-                    },
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildPasswordField(
+                    controller: _currentPasswordController,
+                    label: '현재 비밀번호',
+                    errorText: '현재 비밀번호를 입력해주세요',
                   ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '현재 비밀번호를 입력해주세요';
-                  }
-                  return null;
-                },
+                  SizedBox(height: 24),
+                  _buildPasswordField(
+                    controller: _newPasswordController,
+                    label: '새 비밀번호',
+                    errorText: '새 비밀번호를 입력해주세요',
+                  ),
+                  SizedBox(height: 24),
+                  _buildPasswordField(
+                    controller: _confirmPasswordController,
+                    label: '새 비밀번호 확인',
+                    errorText: '비밀번호가 일치하지 않습니다',
+                    isConfirmField: true,
+                  ),
+                  SizedBox(height: 40),
+                  ElevatedButton(
+                    onPressed: _handleSubmit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      '비밀번호 변경',
+                      style: GoogleFonts.jua(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: _newPasswordController,
-                obscureText: _isObscure,
-                decoration: InputDecoration(
-                  labelText: '새 비밀번호',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '새 비밀번호를 입력해주세요';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: _confirmPasswordController,
-                obscureText: _isObscure,
-                decoration: InputDecoration(
-                  labelText: '새 비밀번호 확인',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value != _newPasswordController.text) {
-                    return '비밀번호가 일치하지 않습니다';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // 비밀번호 변경 로직 구현
-                  }
-                },
-                child: Text('비밀번호 변경'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required String errorText,
+    bool isConfirmField = false,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: _isObscure,
+      style: GoogleFonts.jua(fontSize: 16),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.jua(
+          color: Colors.grey[600],
+          fontSize: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.black, width: 2),
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isObscure ? Icons.visibility_off : Icons.visibility,
+            color: Colors.grey[600],
+          ),
+          onPressed: () => setState(() => _isObscure = !_isObscure),
+        ),
+        filled: true,
+        fillColor: Colors.grey[50],
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return errorText;
+        }
+        if (isConfirmField && value != _newPasswordController.text) {
+          return '비밀번호가 일치하지 않습니다';
+        }
+        return null;
+      },
+    );
+  }
+
+  void _handleSubmit() {
+    if (_formKey.currentState!.validate()) {
+      // 비밀번호 변경 로직 구현
+    }
   }
 }
