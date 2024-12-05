@@ -135,7 +135,11 @@ class _MainScreenState extends State<MainScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => StudyScreen(),
-                  ));
+                  )).then(
+                (value) {
+                  setState(() {});
+                },
+              );
             },
             child: Text(
               '학습 시작하기',

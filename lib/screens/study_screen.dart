@@ -14,6 +14,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:sound_studio/network/image_services.dart';
 import 'package:sound_studio/network/noise_services.dart';
 import 'package:sound_studio/network/user_services.dart';
+import 'package:sound_studio/screens/main_screen.dart';
 import 'package:sound_studio/screens/study_result_screen.dart';
 
 class StudyScreen extends StatefulWidget {
@@ -252,7 +253,7 @@ class _StudyScreenState extends State<StudyScreen> {
       isStudying = false;
     });
 
-    Navigator.pushReplacement(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (context) => StudyResultScreen(
@@ -261,6 +262,7 @@ class _StudyScreenState extends State<StudyScreen> {
           totalSeconds: _activeSeconds,
         ),
       ),
+      (route) => false,
     );
   }
 
