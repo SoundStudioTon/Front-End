@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:path/path.dart' as path;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:sound_studio/network/image_services.dart';
@@ -31,7 +32,11 @@ class _StudyScreenState extends State<StudyScreen> {
   final ImageApi _imageApi =
       ImageApi(baseUrl: 'http://sound-studio.kro.kr:8080');
   String? _latestAiResponse;
-  int _seconds = 0; // 타이머를 위한 변수 추가
+  int _seconds = 0;
+  int _activeSeconds = 0; // 실제 학습 시간
+  DateTime? startTime;
+  DateTime? _lastPauseTime;
+  List<Map<String, dynamic>> studyData = []; // 학습 데이터 저장 리스트
 
   final Map<String, int> audioAssetToNumber = {
     "audio/pink_noise.mp3": 1,
@@ -88,12 +93,12 @@ class _StudyScreenState extends State<StudyScreen> {
   }
 
   void handleStudyTimer(Timer timer) async {
-    if (!mounted) return; // mounted 체크 추가
+    if (!mounted) return;
 
     if (!isPaused) {
-      // 일시정지가 아닐 때만 시간 증가
       setState(() {
         _seconds++;
+        _activeSeconds++; // 실제 학습 시간만 증가
       });
     }
 
@@ -114,9 +119,6 @@ class _StudyScreenState extends State<StudyScreen> {
       );
 
       if (compressedBytes == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('이미지 압축에 실패했습니다.')),
-        );
         setState(() {
           isUploading = false;
         });
@@ -132,17 +134,20 @@ class _StudyScreenState extends State<StudyScreen> {
         setState(() {
           _latestAiResponse = aiResponse;
         });
+
+        // AI 응답을 받았을 때 데이터 저장
+        if (aiResponse != null && !isPaused) {
+          studyData.add({
+            'timestamp': DateTime.now(),
+            'status': aiResponse,
+            'seconds': _activeSeconds,
+          });
+        }
       }
     } catch (e) {
-      // 에러 처리
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('에러 발생: $e')),
-        );
-      }
+      if (mounted) {}
     } finally {
       if (mounted) {
-        // mounted 체크 추가
         setState(() {
           isUploading = false;
         });
@@ -188,11 +193,30 @@ class _StudyScreenState extends State<StudyScreen> {
       return;
     }
 
+    startTime = DateTime.now();
+    studyData.clear(); // 새로운 세션 시작시 데이터 초기화
+    _seconds = 0;
+    _activeSeconds = 0;
+
     _audioPlayer?.setReleaseMode(ReleaseMode.loop);
 
     try {
       await _audioPlayer?.play(AssetSource(audioAsset!));
       _timer = Timer.periodic(Duration(seconds: 1), handleStudyTimer);
+
+      Future.delayed(Duration(minutes: 1), () {
+        if (mounted && isStudying && !isPaused) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '소음이 변형됩니다.',
+                style: GoogleFonts.jua(fontSize: 14),
+              ),
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+      });
 
       setState(() {
         isStudying = true;
@@ -206,15 +230,24 @@ class _StudyScreenState extends State<StudyScreen> {
     }
   }
 
+  void togglePause() {
+    setState(() {
+      isPaused = !isPaused;
+      if (isPaused) {
+        _lastPauseTime = DateTime.now();
+        _audioPlayer?.pause();
+      } else {
+        _audioPlayer?.resume();
+      }
+    });
+  }
+
   void stopStudying() {
-    // 타이머와 오디오 정지
     _timer?.cancel();
     _audioPlayer?.stop();
 
-    // mounted 체크 추가
     if (!mounted) return;
 
-    // 화면 이동 전에 isStudying 상태 변경
     setState(() {
       isStudying = false;
     });
@@ -223,8 +256,10 @@ class _StudyScreenState extends State<StudyScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => StudyResultScreen(
-            // 필요한 다른 결과 데이터들 전달
-            ),
+          studyData: studyData,
+          startTime: startTime!,
+          totalSeconds: _activeSeconds,
+        ),
       ),
     );
   }
@@ -232,30 +267,15 @@ class _StudyScreenState extends State<StudyScreen> {
   String _getEmoji(String response) {
     switch (response) {
       case "집중함":
-        return "😊"; // 집중하는 표정
+        return "😊";
       case "집중하지 않음":
-        return "😑"; // 집중하지 않는 표정
+        return "😑";
       case "졸음":
-        return "😴"; // 졸린 표정
+        return "😴";
       case "0":
-        return "❓"; // 얼굴 인식 실패
+        return "❓";
       default:
         return "❓";
-    }
-  }
-
-  Color _getBackgroundColor(String response) {
-    switch (response) {
-      case "집중함":
-        return Colors.green.withOpacity(0.2);
-      case "집중하지 않음":
-        return Colors.orange.withOpacity(0.2);
-      case "졸음":
-        return Colors.red.withOpacity(0.2);
-      case "0":
-        return Colors.grey.withOpacity(0.2);
-      default:
-        return Colors.grey.withOpacity(0.2);
     }
   }
 

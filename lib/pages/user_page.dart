@@ -1,8 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sound_studio/network/user_services.dart';
 
-class UserPage extends StatelessWidget {
+class UserPage extends StatefulWidget {
   const UserPage({super.key});
+
+  @override
+  State<UserPage> createState() => _UserPageState();
+}
+
+class _UserPageState extends State<UserPage> {
+  String? username;
+  String? email;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserName();
+  }
+
+  _fetchUserName() async {
+    final name = await AuthService.storage.read(key: "userName");
+    final _email = await AuthService.storage.read(key: "email");
+    print(name);
+    setState(() {
+      username = name;
+      email = _email;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,13 +69,13 @@ class UserPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '사용자님',
+                                '${username ?? '사용자'}님',
                                 style: TextStyle(
                                     fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                               SizedBox(height: 4),
                               Text(
-                                'example@gmail.com',
+                                email ?? '',
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                               SizedBox(height: 2),

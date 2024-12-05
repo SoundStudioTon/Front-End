@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:sound_studio/data/concentration_data.dart';
+import 'package:sound_studio/network/concentration_services.dart';
 import 'package:sound_studio/ui/concentration_green_bar_chart.dart';
 import 'package:sound_studio/ui/concentration_green_pie_chart.dart';
 import 'package:sound_studio/ui/concentration_pie_chart.dart';
@@ -17,37 +18,80 @@ class GraphPage extends StatefulWidget {
 class _GraphPageState extends State<GraphPage> {
   DateTime selectedDate = DateTime.now();
   Map<DateTime, double> concentrationData = {};
+  bool _isLoading = false;
+  ConcentrationServices concentrationServices = ConcentrationServices();
 
   @override
   void initState() {
     super.initState();
-    // 샘플 데이터 추가
-    addConcentrationData(DateTime.now(), 86);
-    addConcentrationData(DateTime.now().subtract(Duration(days: 10)), 81);
-    addConcentrationData(DateTime.now().subtract(Duration(days: 9)), 80);
-    addConcentrationData(DateTime.now().subtract(Duration(days: 8)), 85);
-    addConcentrationData(DateTime.now().subtract(Duration(days: 7)), 87);
-    addConcentrationData(DateTime.now().subtract(Duration(days: 6)), 91);
-    addConcentrationData(DateTime.now().subtract(Duration(days: 5)), 92);
-    addConcentrationData(DateTime.now().subtract(Duration(days: 4)), 94);
-    addConcentrationData(DateTime.now().subtract(Duration(days: 3)), 91);
-    addConcentrationData(DateTime.now().subtract(Duration(days: 1)), 93);
+    _fetchMonthData();
   }
 
-  void addConcentrationData(DateTime date, double value) {
+  Future<void> _fetchMonthData() async {
     setState(() {
-      concentrationData[DateTime(date.year, date.month, date.day)] = value;
+      _isLoading = true;
+      concentrationData.clear();
     });
+
+    try {
+      // 선택된 월의 데이터 가져오기
+      final concentrationResponses =
+          await concentrationServices.getMonthConcentrationData(selectedDate);
+
+      // 날짜별로 데이터 그룹화
+      Map<DateTime, List<ConcentrationResponse>> dailyGroups = {};
+
+      for (var response in concentrationResponses) {
+        DateTime dateKey = DateTime(
+          response.date.year,
+          response.date.month,
+          response.date.day,
+        );
+        dailyGroups.putIfAbsent(dateKey, () => []);
+        dailyGroups[dateKey]!.add(response);
+      }
+
+      // 각 날짜별 집중도 계산
+      dailyGroups.forEach((date, responses) {
+        // 0이 아닌 데이터만 필터링
+        var validResponses = responses.where((r) => r.value != '0').toList();
+
+        if (validResponses.isNotEmpty) {
+          // 집중도 계산: (집중함 개수) / (0이 아닌 전체 데이터 개수) * 100
+          int concentratedCount =
+              validResponses.where((r) => r.value == '집중함').length;
+          double concentrationRate =
+              (concentratedCount / validResponses.length) * 100;
+
+          concentrationData[date] = concentrationRate;
+        }
+      });
+    } catch (e) {
+      print('Error fetching month concentration data: $e');
+      // 에러 처리
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('데이터를 불러오는데 실패했습니다.')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
-        child: MonthCalendar(),
-      ),
+      body: _isLoading
+          ? Center(
+              child: CircularProgressIndicator(
+              color: Colors.black,
+            ))
+          : SingleChildScrollView(
+              padding: EdgeInsets.all(16.0),
+              child: MonthCalendar(),
+            ),
     );
   }
 
@@ -72,10 +116,34 @@ class _GraphPageState extends State<GraphPage> {
         );
       },
     );
+
     if (picked != null && picked != selectedDate) {
       setState(() {
         selectedDate = picked;
       });
+      _fetchMonthData(); // 새로운 달 선택시 데이터 다시 불러오기
+    }
+  }
+
+  void _navigateToDetailScreen(DateTime date, double concentration) async {
+    try {
+      final dayData = await concentrationServices.getDayConcentartionData(date);
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DetailScreen(
+            date: date,
+            concentration: concentration,
+            concentrationResponses: dayData,
+          ),
+        ),
+      );
+    } catch (e) {
+      print('Error fetching day detail data: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('상세 데이터를 불러오는데 실패했습니다.')),
+      );
     }
   }
 
@@ -181,21 +249,12 @@ class _GraphPageState extends State<GraphPage> {
   }
 
   Widget _buildDateCell(DateTime date) {
-    double? concentration =
-        concentrationData[DateTime(date.year, date.month, date.day)];
+    double? concentration = concentrationData[date];
 
     return GestureDetector(
       onTap: () {
         if (concentration != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DetailScreen(
-                date: date,
-                concentration: concentration,
-              ),
-            ),
-          );
+          _navigateToDetailScreen(date, concentration);
         }
       },
       child: Container(
@@ -260,12 +319,48 @@ class _GraphPageState extends State<GraphPage> {
 class DetailScreen extends StatelessWidget {
   final DateTime date;
   final double concentration;
+  final List<ConcentrationResponse> concentrationResponses;
 
   const DetailScreen({
     Key? key,
     required this.date,
     required this.concentration,
+    required this.concentrationResponses,
   }) : super(key: key);
+
+  List<ConcentrationData> _processHourlyData() {
+    // 시간별로 데이터 그룹화
+    Map<int, List<ConcentrationResponse>> hourlyGroups = {};
+
+    // 모든 시간대 초기화
+    for (int i = 0; i < 24; i++) {
+      hourlyGroups[i] = [];
+    }
+
+    // 받은 데이터 그룹화
+    for (var response in concentrationResponses) {
+      int hour = response.date.hour;
+      hourlyGroups[hour]!.add(response);
+    }
+
+    // 각 시간대별 집중도 계산
+    return List.generate(24, (hour) {
+      var responses = hourlyGroups[hour]!;
+      var validResponses = responses.where((r) => r.value != '0').toList();
+
+      double concentrationRate = 0;
+      if (validResponses.isNotEmpty) {
+        int concentratedCount =
+            validResponses.where((r) => r.value == '집중함').length;
+        concentrationRate = (concentratedCount / validResponses.length) * 100;
+      }
+
+      return ConcentrationData(
+        hour: hour.toDouble(),
+        concentrationRate: concentrationRate,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -273,6 +368,7 @@ class DetailScreen extends StatelessWidget {
       builder: (context, constraints) {
         double screenWidth = constraints.maxWidth;
         double screenHeight = constraints.maxHeight;
+
         return Scaffold(
           appBar: AppBar(
             title: Text(
@@ -293,11 +389,11 @@ class DetailScreen extends StatelessWidget {
             child: Column(
               children: [
                 ContentBlock(
-                  screenWidth: MediaQuery.of(context).size.width,
-                  screenHeight: MediaQuery.of(context).size.height,
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
                   title: '집중도',
                   widget: SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.3,
+                    height: screenHeight * 0.3,
                     child: Center(
                       child: ConcentrationGreenPieChart(
                         percentage: concentration,
@@ -306,54 +402,19 @@ class DetailScreen extends StatelessWidget {
                   ),
                   ratioHeight: 0.3,
                 ),
-                SizedBox(
-                  height: screenHeight * 0.02,
-                ),
+                SizedBox(height: screenHeight * 0.02),
                 ContentBlock(
-                    screenWidth: screenWidth,
-                    screenHeight: screenHeight,
-                    title: '시간대별 집중도 그래프',
-                    widget: ScrollableGreenConcentrationChart(data: [
-                      ConcentrationData(hour: 0, concentrationRate: 0), // 자는 시간
-                      ConcentrationData(hour: 1, concentrationRate: 0),
-                      ConcentrationData(hour: 2, concentrationRate: 0),
-                      ConcentrationData(hour: 3, concentrationRate: 0),
-                      ConcentrationData(hour: 4, concentrationRate: 0),
-                      ConcentrationData(hour: 5, concentrationRate: 0), // 기상 시작
-                      // 아침 시간대 (6-11시): 집중도 상승
-                      ConcentrationData(hour: 6, concentrationRate: 0), // 아침 활동
-                      ConcentrationData(hour: 7, concentrationRate: 0),
-                      ConcentrationData(
-                          hour: 8, concentrationRate: 89), // 업무/학습 시작
-                      ConcentrationData(
-                          hour: 9, concentrationRate: 90), // 오전 피크
-                      ConcentrationData(hour: 10, concentrationRate: 93),
-                      ConcentrationData(
-                          hour: 11, concentrationRate: 94), // 점심 전
-
-                      // 오후 시간대 (12-17시): 변동있는 집중도
-                      ConcentrationData(
-                          hour: 12, concentrationRate: 90), // 점심 시간
-                      ConcentrationData(hour: 13, concentrationRate: 0), // 졸음시간
-                      ConcentrationData(hour: 14, concentrationRate: 0),
-                      ConcentrationData(
-                          hour: 15, concentrationRate: 0), // 오후 업무
-                      ConcentrationData(hour: 16, concentrationRate: 0),
-                      ConcentrationData(
-                          hour: 17, concentrationRate: 0), // 퇴근 시간
-
-                      // 저녁 시간대 (18-23시): 점진적 감소
-                      ConcentrationData(
-                          hour: 18, concentrationRate: 0), // 저녁 활동
-                      ConcentrationData(hour: 19, concentrationRate: 0),
-                      ConcentrationData(hour: 20, concentrationRate: 0),
-                      ConcentrationData(hour: 21, concentrationRate: 0), // 휴식
-                      ConcentrationData(
-                          hour: 22, concentrationRate: 0), // 취침 준비
-                      ConcentrationData(
-                          hour: 23, concentrationRate: 0), // 취침 시간
-                    ]),
-                    ratioHeight: 0.5),
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                  title: '시간대별 집중도 그래프',
+                  widget: ScrollableGreenConcentrationChart(
+                    data: _processHourlyData(),
+                  ),
+                  ratioHeight: 0.45,
+                ),
+                SizedBox(
+                  height: screenHeight * 0.1,
+                ),
               ],
             ),
           ),

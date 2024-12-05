@@ -12,13 +12,15 @@ class ConcentrationLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final int minDataPoints = 60;
+    final int dataPoints =
+        data.isEmpty ? minDataPoints : max(data.length, minDataPoints);
+
     double viewportDataPoints = 12;
-    double totalWidth = data.length * 20.0;
+    double totalWidth = dataPoints * 20.0;
     double viewportWidth = viewportDataPoints * 20.0;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      scrollController.jumpTo(scrollController.position.maxScrollExtent);
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -77,27 +79,28 @@ class ConcentrationLineChart extends StatelessWidget {
               ),
               borderData: FlBorderData(show: false),
               minX: 0,
-              maxX: data.length.toDouble(),
+              maxX: dataPoints.toDouble(),
               minY: 0,
               maxY: 120,
               lineBarsData: [
-                LineChartBarData(
-                  spots: data
-                      .asMap()
-                      .entries
-                      .map((entry) => FlSpot(
-                          entry.key.toDouble(), entry.value.concentrationRate))
-                      .toList(),
-                  isCurved: true,
-                  color: Colors.cyan[100],
-                  barWidth: 2,
-                  isStrokeCapRound: true,
-                  dotData: FlDotData(show: false),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: Colors.cyan.withOpacity(0.2),
+                if (data.isNotEmpty) // 데이터가 있을 때만 라인 표시
+                  LineChartBarData(
+                    spots: data
+                        .asMap()
+                        .entries
+                        .map((entry) => FlSpot(entry.key.toDouble(),
+                            entry.value.concentrationRate))
+                        .toList(),
+                    isCurved: true,
+                    color: Colors.cyan[100],
+                    barWidth: 2,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: Colors.cyan.withOpacity(0.2),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -115,51 +118,4 @@ class ConcentrationMData {
     required this.minute,
     required this.concentrationRate,
   });
-}
-
-// 예시 데이터 (90분, 1분 간격)
-List<ConcentrationMData> generateSampleData() {
-  List<ConcentrationMData> data = [];
-
-  // 5분 단위의 기준 집중도
-  Map<int, int> baseConcentrations = {
-    0: 83, // 0분
-    5: 84, // 5분
-    10: 85, // 10분
-    15: 90, // 15분
-    20: 95, // 20분
-    25: 100, // 25분
-    30: 95, // 30분
-    35: 90, // 35분
-    40: 85, // 40분
-    45: 88, // 45분
-    50: 84, // 50분
-    55: 85, // 55분
-    60: 87, // 60분
-    65: 90, // 65분
-    70: 92, // 70분
-    75: 80, // 75분
-    80: 78, // 80분
-    85: 80, // 85분
-    90: 70, // 90분
-  };
-
-  for (int minute = 0; minute < 90; minute++) {
-    int baseMinute = (minute ~/ 5) * 5;
-    int nextBaseMinute = baseMinute + 5;
-
-    int currentBase = baseConcentrations[baseMinute] ?? 65;
-    int nextBase = baseConcentrations[nextBaseMinute] ?? currentBase;
-
-    int minuteInInterval = minute % 5;
-    double progress = minuteInInterval / 5;
-
-    int concentration =
-        currentBase + ((nextBase - currentBase) * progress).round();
-
-    data.add(ConcentrationMData(
-        minute: minute, concentrationRate: concentration.toDouble()));
-  }
-
-  return data;
 }
