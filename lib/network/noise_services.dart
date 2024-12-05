@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sound_studio/network/user_services.dart';
 
 Future<bool> checkUserNoiseData(String accessToken) async {
   try {
@@ -94,7 +95,6 @@ Future<int> getNoiseNumber(String accessToken) async {
       options: Options(contentType: Headers.formUrlEncodedContentType),
     );
 
-    // Check response status and handle data
     if (response.statusCode == 200) {
       return response.data;
     } else {
@@ -143,5 +143,23 @@ Future<String> saveAudioFile(String base64audio) async {
   } catch (e) {
     print("Exception : ${e}");
     return "Error";
+  }
+}
+
+Future<void> sendReward(int reward) async {
+  String? accessToken = await AuthService.storage.read(key: "AccessToken");
+  if (accessToken != null) return;
+  Dio dio = Dio();
+  try {
+    final response = await dio.post(
+        'http://sound-studio.kro.kr:8080/api/noise/send',
+        queryParameters: {"AccessToken": accessToken, "reward": reward});
+    if (response.statusCode == 200) {
+      print('Success');
+    } else {
+      print(response.statusCode);
+    }
+  } catch (e) {
+    print(e);
   }
 }

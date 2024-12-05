@@ -751,9 +751,10 @@ class ResultsScreen extends StatelessWidget {
   });
 
   Color getConcentrationColor(double rate) {
-    if (rate >= 90) return Colors.green;
-    if (rate >= 80) return Colors.blue;
-    if (rate >= 70) return Colors.orange;
+    if (rate >= 97) return Colors.green;
+    if (rate >= 95) return Colors.blue;
+    if (rate >= 90) return Colors.yellow;
+    if (rate >= 80) return Colors.orange;
     return Colors.red;
   }
 

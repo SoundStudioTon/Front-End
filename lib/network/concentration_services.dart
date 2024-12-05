@@ -32,14 +32,30 @@ class ConcentrationServices {
     }
   }
 
-  Future<List<ConcentrationResponse>> getDayConcentartionData() async {
+  Future<List<ConcentrationResponse>> getDayConcentartionData(
+      DateTime dateTime) async {
     int? userId = await getUserId();
-    DateTime curDateTime = DateTime.now();
-    DateTime startTime =
-        DateTime(curDateTime.year, curDateTime.month, curDateTime.day);
-    DateTime endTime = DateTime(
-        curDateTime.year, curDateTime.month, curDateTime.day, 23, 59, 59, 999);
+    DateTime selectedDateTime = dateTime;
+    DateTime startTime = DateTime(
+        selectedDateTime.year, selectedDateTime.month, selectedDateTime.day);
+    DateTime endTime = DateTime(selectedDateTime.year, selectedDateTime.month,
+        selectedDateTime.day, 23, 59, 59, 999);
 
+    if (userId != null) {
+      return await recevieConcentration(userId, startTime, endTime);
+    }
+
+    return []; // userId가 null인 경우 빈 리스트 반환
+  }
+
+  Future<List<ConcentrationResponse>> getMonthConcentrationData(
+      DateTime dateTime) async {
+    int? userId = await getUserId();
+    DateTime selectedDateTime = dateTime;
+    DateTime startTime =
+        DateTime(selectedDateTime.year, selectedDateTime.month);
+    DateTime endTime = DateTime(
+        selectedDateTime.year, selectedDateTime.month + 1, 0, 23, 59, 59, 999);
     if (userId != null) {
       return await recevieConcentration(userId, startTime, endTime);
     }
