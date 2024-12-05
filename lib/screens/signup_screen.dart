@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sound_studio/network/user_services.dart';
+import 'package:sound_studio/screens/terms_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -236,6 +237,11 @@ class _SignupScreenState extends State<SignupScreen> {
                       TextButton(
                         onPressed: () {
                           // 약관 내용 보여주기
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => TermsScreen(),
+                              ));
                         },
                         child: Text(
                           '(약관 보기)',

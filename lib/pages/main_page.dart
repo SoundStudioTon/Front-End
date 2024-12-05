@@ -238,6 +238,12 @@ class _MainPageState extends State<MainPage> {
                             MaterialPageRoute(
                               builder: (context) => DifficultyScreen(),
                             ),
+                          ).then(
+                            (value) {
+                              setState(() {
+                                _fetchTodayData();
+                              });
+                            },
                           );
                         },
                         child: Text(

@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sound_studio/network/user_services.dart';
+import 'package:sound_studio/screens/account_deletion_screen.dart';
+import 'package:sound_studio/screens/change_password_screen.dart';
+import 'package:sound_studio/screens/contact_screen.dart';
+import 'package:sound_studio/screens/logout_screen.dart';
+import 'package:sound_studio/screens/notification_settings_screen.dart';
+import 'package:sound_studio/screens/terms_screen.dart';
 
 class UserPage extends StatefulWidget {
   const UserPage({super.key});
@@ -103,13 +109,21 @@ class _UserPageState extends State<UserPage> {
                   ListTile(
                     title: Text('비밀번호 변경하기'),
                     onTap: () {
-                      // Action for changing password
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChangePasswordScreen(),
+                          ));
                     },
                   ),
                   ListTile(
                     title: Text('알림 설정'),
                     onTap: () {
-                      // Action for notification settings
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NotificationSettingsScreen(),
+                          ));
                     },
                   ),
                   Divider(),
@@ -117,25 +131,41 @@ class _UserPageState extends State<UserPage> {
                   ListTile(
                     title: Text('문의하기'),
                     onTap: () {
-                      // Action for contacting
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ContactScreen(),
+                          ));
                     },
                   ),
                   ListTile(
                     title: Text('로그아웃'),
                     onTap: () {
-                      // Action for logout
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LogoutScreen(),
+                          ));
                     },
                   ),
                   ListTile(
                     title: Text('회원 탈퇴'),
                     onTap: () {
-                      // Action for account deletion
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AccountDeletionScreen(),
+                          ));
                     },
                   ),
                   ListTile(
                     title: Text('약관 확인'),
                     onTap: () {
-                      // Action for terms confirmation
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TermsScreen(),
+                          ));
                     },
                   ),
                 ],
