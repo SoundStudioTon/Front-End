@@ -38,6 +38,10 @@ class _StudyScreenState extends State<StudyScreen> {
   DateTime? startTime;
   DateTime? _lastPauseTime;
   List<Map<String, dynamic>> studyData = []; // 학습 데이터 저장 리스트
+  Timer? _concentrationTimer;
+  List<String> _lastMinuteResponses = [];
+  bool _isTransformedNoise = false;
+  String? _transformedNoiseBase64;
 
   final Map<String, int> audioAssetToNumber = {
     "audio/pink_noise.mp3": 1,
@@ -52,6 +56,74 @@ class _StudyScreenState extends State<StudyScreen> {
     int minutes = (_seconds % 3600) ~/ 60;
     int seconds = _seconds % 60;
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  double calculateConcentrationRate() {
+    if (_lastMinuteResponses.isEmpty) return 100.0;
+
+    int concentratedCount =
+        _lastMinuteResponses.where((response) => response == "집중함").length;
+
+    return (concentratedCount / _lastMinuteResponses.length) * 100;
+  }
+
+  void monitorConcentration() {
+    _concentrationTimer = Timer.periodic(Duration(seconds: 60), (timer) async {
+      if (!mounted || isPaused) return;
+
+      double concentrationRate = calculateConcentrationRate();
+      _lastMinuteResponses.clear();
+
+      if (_isTransformedNoise) {
+        // 변형된 소음 사용 중일 때의 평가
+        int reward = concentrationRate >= 70 ? 1 : -1;
+        String? accessToken =
+            await AuthService.storage.read(key: 'accessToken');
+        if (accessToken != null) {
+          await sendReward(reward);
+        }
+        _isTransformedNoise = false;
+        // 원래 소음으로 복귀
+        if (_audioPlayer != null) {
+          await _audioPlayer!.stop();
+          String? noiseAsset = await getOriginalNoiseAsset();
+          if (noiseAsset != null) {
+            await _audioPlayer!.play(AssetSource(noiseAsset));
+          }
+        }
+      } else if (concentrationRate < 70) {
+        // 일반 소음 사용 중 집중도가 낮을 때
+        String? accessToken =
+            await AuthService.storage.read(key: 'accessToken');
+        if (accessToken != null) {
+          int noiseNumber = await getNoiseNumber(accessToken);
+          String transformedNoise =
+              await noiseTransformation(accessToken, noiseNumber);
+
+          if (transformedNoise != "Error") {
+            _transformedNoiseBase64 = transformedNoise;
+            String audioPath = await saveAudioFile(transformedNoise);
+
+            if (_audioPlayer != null && audioPath != "Error") {
+              await _audioPlayer!.stop();
+              await _audioPlayer!.play(DeviceFileSource(audioPath));
+              _isTransformedNoise = true;
+            }
+          }
+        }
+      }
+    });
+  }
+
+  Future<String?> getOriginalNoiseAsset() async {
+    String? accessToken = await AuthService.storage.read(key: 'accessToken');
+    if (accessToken == null) return null;
+
+    int noiseNumber = await getNoiseNumber(accessToken);
+    return audioAssetToNumber.entries
+        .firstWhere((entry) => entry.value == noiseNumber,
+            orElse: () => MapEntry("", -1))
+        .key;
   }
 
   @override
@@ -93,13 +165,14 @@ class _StudyScreenState extends State<StudyScreen> {
     initCamera();
   }
 
+  @override
   void handleStudyTimer(Timer timer) async {
     if (!mounted) return;
 
     if (!isPaused) {
       setState(() {
         _seconds++;
-        _activeSeconds++; // 실제 학습 시간만 증가
+        _activeSeconds++;
       });
     }
 
@@ -136,8 +209,8 @@ class _StudyScreenState extends State<StudyScreen> {
           _latestAiResponse = aiResponse;
         });
 
-        // AI 응답을 받았을 때 데이터 저장
         if (aiResponse != null && !isPaused) {
+          _lastMinuteResponses.add(aiResponse); // 집중도 모니터링을 위해 응답 저장
           studyData.add({
             'timestamp': DateTime.now(),
             'status': aiResponse,
@@ -146,7 +219,9 @@ class _StudyScreenState extends State<StudyScreen> {
         }
       }
     } catch (e) {
-      if (mounted) {}
+      if (mounted) {
+        print('Error during image upload: $e');
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -156,6 +231,7 @@ class _StudyScreenState extends State<StudyScreen> {
     }
   }
 
+  @override
   void startStudying() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -195,29 +271,18 @@ class _StudyScreenState extends State<StudyScreen> {
     }
 
     startTime = DateTime.now();
-    studyData.clear(); // 새로운 세션 시작시 데이터 초기화
+    studyData.clear();
+    _lastMinuteResponses.clear();
     _seconds = 0;
     _activeSeconds = 0;
+    _isTransformedNoise = false;
 
     _audioPlayer?.setReleaseMode(ReleaseMode.loop);
 
     try {
       await _audioPlayer?.play(AssetSource(audioAsset!));
       _timer = Timer.periodic(Duration(seconds: 1), handleStudyTimer);
-
-      Future.delayed(Duration(minutes: 1), () {
-        if (mounted && isStudying && !isPaused) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '소음이 변형됩니다.',
-                style: GoogleFonts.jua(fontSize: 14),
-              ),
-              duration: Duration(seconds: 5),
-            ),
-          );
-        }
-      });
+      monitorConcentration(); // 집중도 모니터링 시작
 
       setState(() {
         isStudying = true;
@@ -298,6 +363,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
   @override
   void dispose() {
+    _concentrationTimer?.cancel();
     _timer?.cancel();
     _audioPlayer?.dispose();
     _cameraController?.dispose();
